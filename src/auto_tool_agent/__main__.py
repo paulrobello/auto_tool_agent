@@ -135,6 +135,13 @@ def parse_args():
         help="Specifies the output format that the AI should generate. Default is markdown.",
     )
 
+    parser.add_argument(
+        "--sandbox_dir",
+        dest="sandbox_dir",
+        type=str,
+        help="The directory to sandbox agent. defaults to data_dir/sandbox.",
+    )
+
     args = parser.parse_args()
 
     if not args.user_prompt and not args.user_request:

@@ -190,30 +190,37 @@ class FolderMonitor:
 
 def get_output_format_prompt(output_format: str) -> str:
     """Get the output format prompt."""
+    preamble = """* When presenting your final answer follow the following instructions. These instructions are only for the final answer. If a tool was created or modified respond with the instructions already given:"""
+    outro = """* Return the answer do not save it to a file."""
     if output_format == "markdown":
-        return """
-        * When presenting your final answer use properly formatted Markdown.
-        * Use table / list formatting when applicable or requested.
-        * Return the output do not save it to a file.
+        return f"""
+{preamble}
+    * Output properly formatted Markdown.
+    * Use table / list formatting when applicable or requested.
+    {outro}
         """
     if output_format == "json":
-        return """
-        * When presenting your final answer use proper JSON formatting. 
-        * Only output JSON. Do not include any other text / markdown or formatting.
-        * Return the output do not save it to a file.
+        return f"""
+{preamble}
+    * Output proper JSON.
+    * Use a schema if provided. 
+    * Only output JSON. Do not include any other text / markdown or formatting.
+    {outro}
         """
     if output_format == "csv":
-        return """
-        * When presenting your final answer use proper CSV formatting.
-            * Include a header with names of the fields.
-            * Ensure you use double quotes on fields containing line breaks or commas.
-        * Only output CSV. Do not include any other text / markdown or formatting.
-        * Return the output do not save it to a file.
+        return f"""
+{preamble}
+    * Output proper CSV format.
+    * Ensure you use double quotes on fields containing line breaks or commas.
+    * Include a header with names of the fields.
+    * Only output CSV. Do not include any other text / markdown or formatting.
+    {outro}
         """
     if output_format == "text":
-        return """
-        * When presenting your final answer use plain text without formatting, do not include any other formatting such as markdown.
-        * Return the output do not save it to a file.
+        return f"""
+{preamble}
+    * Output plain text without formatting, do not include any other formatting such as markdown.
+    {outro}
         """
     return ""
 
@@ -225,6 +232,7 @@ async def create_agent(opts: Namespace) -> Union[str, bool]:
     with open(opts.system_prompt, "rt", encoding="utf-8") as f:
         system_prompt = f.read()
     system_prompt = system_prompt.strip() + get_output_format_prompt(opts.output_format)
+    agent_log.info("System prompt: \n=============\n%s\n=============", system_prompt)
     prompt = ChatPromptTemplate.from_messages(
         [
             ("system", system_prompt),
