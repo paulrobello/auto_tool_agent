@@ -192,22 +192,28 @@ def get_output_format_prompt(output_format: str) -> str:
     """Get the output format prompt."""
     if output_format == "markdown":
         return """
-        * When presenting your final answer use properly formatted markdown and table / list formatting when applicable.
+        * When presenting your final answer use properly formatted Markdown.
+        * Use table / list formatting when applicable or requested.
+        * Return the output do not save it to a file.
         """
     if output_format == "json":
         return """
-        * When presenting your final answer use proper JSON formatting. Only output JSON. Do not include any other text / markdown or formatting.
+        * When presenting your final answer use proper JSON formatting. 
+        * Only output JSON. Do not include any other text / markdown or formatting.
+        * Return the output do not save it to a file.
         """
     if output_format == "csv":
         return """
         * When presenting your final answer use proper CSV formatting.
             * Include a header with names of the fields.
-            * Ensure you use double quote on fields containing line breaks or commas.
-            * Only output CSV. Do not include any other text / markdown or formatting.
+            * Ensure you use double quotes on fields containing line breaks or commas.
+        * Only output CSV. Do not include any other text / markdown or formatting.
+        * Return the output do not save it to a file.
         """
     if output_format == "text":
         return """
-        * When presenting your final answer use plain text without formatting, ordo not include any other formatting such as markdown.
+        * When presenting your final answer use plain text without formatting, do not include any other formatting such as markdown.
+        * Return the output do not save it to a file.
         """
     return ""
 
@@ -231,6 +237,7 @@ async def create_agent(opts: Namespace) -> Union[str, bool]:
     llm = LlmConfig(
         provider=LlmProvider.OPENAI,
         model_name=os.environ.get("OPENAI_MODEL_NAME", "gpt-4o"),
+        temperature=0.1
     ).build_chat_model()
     tools: list[BaseTool] = [  # pyright: ignore [reportAssignmentType]
         list_files,

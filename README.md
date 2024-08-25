@@ -65,6 +65,28 @@ You can also request the agent update or add features to existing tools:
 ARG1="add boto3 paginator to tool list_s3_buckets" make run
 ```
 
+## Output format examples
+You can specify any of the supported output formats enhance the system prompt for better output formatting.  
+### Markdown
+```bash
+ARG1='-f' ARG2='markdown' ARG3='-o' ARG4='data.md' ARG5='list all s3 buckets in region us-east-1. Use a Markdown table with columns bucket_name, region' make run
+```
+
+### CSV
+```bash
+ARG1='-f' ARG2='csv' ARG3='-o' ARG4='data.csv' ARG5='list all s3 buckets in region us-east-1. Use CSV with fields bucket_name, region' make run
+```
+
+### JSON
+```bash
+ARG1='-f' ARG2='json' ARG3='-o' ARG4='data.json' ARG5='list all s3 buckets in region us-east-1. Use the following json schema [{"bucket_name": "string", "region": "string"}]' make run
+```
+
+### Text
+```bash
+ARG1='-f' ARG2='text' ARG3='-o' ARG4='data.txt' ARG5='list all s3 buckets in region us-east-1.' make run
+```
+
 ## Agent Logic
 
 ### System prompt
