@@ -1,0 +1,28 @@
+{
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/build",
+    "**/sandbox"
+  ],
+  "ignore": [],
+  "defineConstant": {
+    "DEBUG": true
+  },
+  "reportMissingImports": "error",
+  "reportMissingTypeStubs": false,
+  "pythonVersion": "3.11",
+  "executionEnvironments": [
+    {
+      "root": "src",
+      "reportMissingImports": "warning"
+    },
+    {
+      "root": "tests",
+      "extraPaths": []
+    }
+  ]
+}

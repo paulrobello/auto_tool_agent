@@ -1,0 +1,106 @@
+[project]
+name = "auto_tool_agent"
+version = "0.1.0"
+description = "AI Agent that can create its own tools"
+url = "https://github.com/paulrobello/auto_tool_agent"
+authors = [{name = "Paul Robello", email = "probello@gmail.com"}]
+maintainers = [{name = "Paul Robello", email = "probello@gmail.com"}]
+keywords = ["ai", "terminal"]
+readme = "README.md"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Environment :: Console",
+    "Development Status :: 4 - Beta",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Terminals",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed"
+]
+dependencies = [
+    "boto3>=1.35.5",
+    "python-env>=1.0.0",
+    "requests>=2.32.3",
+    "simplejson>=3.19.3",
+    "pydantic>=2.8.2",
+    "pydantic-core>=2.20.1",
+    "langchain>=0.2.14",
+    "langchain-core>=0.2.34",
+    "langchain-community>=0.2.12",
+    "experimental>=0.9.7",
+    "openai>=1.42.0",
+    "langchain-openai>=0.1.22",
+    "ollama>=0.3.1",
+    "langchain-ollama>=0.1.1",
+    "transformers>=4.44.2",
+    "pypdf>=4.3.1",
+    "pytz>=2024.1",
+    "langgraph>=0.2.14",
+    "urllib3>=2.2.2",
+    "rich>=13.7.1",
+    "pyperclip>=1.9.0",
+    "sentence-transformers>=3.0.1",
+    "sqlalchemy>=2.0.32",
+    "tokenizers>=0.19.1",
+    "langsmith>=0.1.104",
+    "langchainhub>=0.1.21",
+    "typing-extensions>=4.12.2",
+    "argparse>=1.4.0",
+    "asyncio>=3.4.3",
+    "attrs>=24.2.0",
+    "httpx>=0.27.0",
+    "humanize>=4.10.0",
+    "isodate2>=0.9.0",
+    "langchain-text-splitters>=0.2.2",
+    "markdownify>=0.13.1",
+    "langchain-anthropic>=0.1.23",
+    "langchain-google-genai>=1.0.10",
+    "langchain-groq>=0.1.9",
+    "psycopg2-binary>=2.9.9",
+    "docker>=7.1.0",
+    "watchdog>=4.0.2",
+    "python-dotenv>=1.0.1",
+]
+[project.urls]
+Documentation = "https://github.com/paulrobello/auto_tool_agent/blob/main/README.md"
+Repository = "https://github.com/paulrobello/auto_tool_agent"
+Issues = "https://github.com/paulrobello/auto_tool_agent/issues"
+Discussions = "https://github.com/paulrobello/auto_tool_agent/discussions"
+Wiki = "https://github.com/paulrobello/auto_tool_agent/wiki"
+
+[project.scripts]
+auto_tool_agent = "auto_tool_agent.cli:main"
+
+[tool.setuptools.package-data]
+auto_tool_agent = [
+    "py.typed",
+    "*/*.png",
+    "*/*.md",
+    "*/*.tcss",
+    "*.png",
+    "*.md",
+    "*.tcss"
+]
+
+[build-system]
+requires = ["hatchling", "setuptools>=68", "wheel"]
+build-backend = "hatchling.build"
+#build-backend = "setuptools.build_meta"
+
+[tool.uv]
+dev-dependencies = [
+    "build>=1.2.1",
+    "twine>=5.1.1",
+    "black>=24.8.0",
+    "pylint>=3.2.6",
+    "pyright>=1.1.377",
+    "pre-commit>=3.8.0",
+]
+
+[tool.auto_tool_agent.cli]
