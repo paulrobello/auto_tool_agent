@@ -16,7 +16,7 @@ __credits__ = ["Paul Robello"]
 __maintainer__ = "Paul Robello"
 __email__ = "probello@xojetaviation.com"
 __version__ = "0.0.1"
-__application_title__ = "AWS TOOLS"
+__application_title__ = "AI TOOLS Agent"
 __application_binary__ = "auto_tool_agent"
 __licence__ = "MIT"
 

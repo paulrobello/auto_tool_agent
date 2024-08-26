@@ -63,32 +63,13 @@ class TooData:
 tool_data = TooData()
 
 
-def discover_tools(module) -> list[BaseTool]:
-    """
-    Discovers and builds a list of functions annotated with "@tool" in the given module.
-
-    Args:
-        module (module): A Python module to inspect.
-
-    Returns:
-        set: A set of functions annotated with "@tool".
-    """
-    tools: list[BaseTool] = []
-    for name in dir(module):
-        func = getattr(module, name)
-        if isinstance(func, BaseTool):
-            ml_log.info("found tool: %s", name)
-            tools.append(func)
-            tool_data.last_tool_load = time.time()
-    return tools
-
-
 class ModuleLoader(FileSystemEventHandler):
     """Load modules when they are modified."""
 
-    def __init__(self, folder_path) -> None:
+    def __init__(self, folder_path, opts: Namespace) -> None:
         """Initialize the event handler."""
         super().__init__()
+        self.opts = opts
         self.folder_path = folder_path
         # the folder to watch
         self.load_existing_modules()
@@ -108,8 +89,7 @@ class ModuleLoader(FileSystemEventHandler):
         self.load_module(module_path)
         self.last_loaded_modules[module_path] = current_time
 
-    @staticmethod
-    def load_module(module_path: str) -> None:
+    def load_module(self, module_path: str) -> None:
         """Load the specified module."""
         module_path = module_path.replace("\\", "/")
         module_name = module_path[:-3]  # remove .py extension
@@ -138,7 +118,7 @@ class ModuleLoader(FileSystemEventHandler):
                 # ml_log.info("Attempting to load module: %s", module_name)
                 spec.loader.exec_module(module)
                 ml_log.info("Loaded module: %s", module_name)
-                new_tools: list[BaseTool] = discover_tools(module)
+                new_tools: list[BaseTool] = self.discover_tools(module)
                 # ml_log.info("New tools found: %d", len(new_tools))
                 if len(new_tools) != 1:
                     ml_log.error(
@@ -150,7 +130,8 @@ class ModuleLoader(FileSystemEventHandler):
                     return
                 tool_data.add_good_tool(module_name, new_tools[0])
             else:
-                ml_log.info("Ignoring non-Python file: %s", module_path)
+                if self.opts.verbose > 1:
+                    ml_log.info("Ignoring non-Python file: %s", module_path)
         except Exception as e:  # pylint: disable=broad-except
             tool_data.add_bad_tool(module_name)
             ml_log.exception(
@@ -163,29 +144,55 @@ class ModuleLoader(FileSystemEventHandler):
             module_path = os.path.join(self.folder_path, filename)
             self.load_module(module_path)
 
+    def discover_tools(self, module) -> list[BaseTool]:
+        """
+        Discovers and builds a list of functions annotated with "@tool" in the given module.
+
+        Args:
+            module (module): A Python module to inspect.
+
+        Returns:
+            set: A set of functions annotated with "@tool".
+        """
+        tools: list[BaseTool] = []
+        for name in dir(module):
+            func = getattr(module, name)
+            if isinstance(func, BaseTool):
+                if self.opts.verbose > 1:
+                    ml_log.info("found tool: %s", name)
+                tools.append(func)
+                tool_data.last_tool_load = time.time()
+        return tools
+
 
 class FolderMonitor:
     """Monitor the specified folder for changes and load new modules."""
 
-    def __init__(self, folder_path: str) -> None:
+    def __init__(self, folder_path: str, opts: Namespace) -> None:
         """Initialize the folder monitor."""
         self.folder_path = folder_path
         if not os.path.exists(self.folder_path):
             raise ValueError(f"Folder {self.folder_path} does not exist.")
+        self.opts = opts
         self.observer = Observer()
-        self.event_handler = ModuleLoader(folder_path)
+        self.event_handler = ModuleLoader(folder_path, opts)
 
     async def start(self) -> None:
         """Start the folder monitor."""
-        fm_log.info("Starting up: %s", self.folder_path)
+        if self.opts.verbose > 0:
+            fm_log.info("Starting up: %s", self.folder_path)
         self.observer.schedule(self.event_handler, self.folder_path, recursive=True)
         self.observer.start()
         while True:
-            await asyncio.sleep(1)
+            try:
+                await asyncio.sleep(1)
+            except Exception as _:  # pylint: disable=broad-except
+                break
 
     async def stop(self) -> None:
         """Stop the folder monitor."""
-        fm_log.info("Shutting down:  %s", self.folder_path)
+        if self.opts.verbose > 0:
+            fm_log.info("Shutting down:  %s", self.folder_path)
         self.observer.stop()
         self.observer.join()
 
@@ -233,11 +240,15 @@ def get_output_format_prompt(output_format: str) -> str:
 async def create_agent(opts: Namespace) -> Union[str, bool]:
     """Create an agent."""
     opts.user_request = opts.user_request.strip()
-    agent_log.info("Creating agent with task: %s", opts.user_request)
+    if opts.verbose > 0:
+        agent_log.info("Creating agent with task: %s", opts.user_request)
     with open(opts.system_prompt, "rt", encoding="utf-8") as f:
         system_prompt = f.read()
     system_prompt = system_prompt.strip() + get_output_format_prompt(opts.output_format)
-    agent_log.info("System prompt: \n=============\n%s\n=============", system_prompt)
+    if opts.verbose > 1:
+        agent_log.info(
+            "System prompt: \n=============\n%s\n=============", system_prompt
+        )
     prompt = ChatPromptTemplate.from_messages(
         [
             ("system", system_prompt),
@@ -262,11 +273,12 @@ async def create_agent(opts: Namespace) -> Union[str, bool]:
     while tool_data.last_tool_load == 0:
         num_waits += 1
         if num_waits > 10:
-            agent_log.error("Took to long for tools to load.")
+            agent_log.error("Took too long for tools to load.")
             return False
         agent_log.info("Waiting for tools load...")
         await asyncio.sleep(3)
-    agent_log.info("AI tools found: %d", len(tool_data.ai_tools))
+    if opts.verbose > 1:
+        agent_log.info("AI tools found: %d", len(tool_data.ai_tools))
 
     tools += tool_data.ai_tools.values()
     agent = create_tool_calling_agent(llm, tools, prompt)
@@ -274,7 +286,8 @@ async def create_agent(opts: Namespace) -> Union[str, bool]:
         agent=agent, tools=tools, verbose=True  # pyright: ignore [reportArgumentType]
     )
     agent_executor.verbose = False
-    agent_log.info("Executing agent...")
+    if opts.verbose > 0:
+        agent_log.info("Executing agent...")
     ret = agent_executor.invoke(
         {
             "chat_history": [],
@@ -284,60 +297,66 @@ async def create_agent(opts: Namespace) -> Union[str, bool]:
     )
     output = ret["output"]
     if "New tool created:" in output:
-        agent_log.info("[yellow]{output}[/yellow]")
+        if opts.verbose > 0:
+            agent_log.info("[yellow]{output}[/yellow]")
         return True
     if "Fixed tool:" in output:
-        agent_log.info("[yellow]{output}[/yellow]")
+        if opts.verbose > 0:
+            agent_log.info("[yellow]{output}[/yellow]")
         return True
     return output
 
 
-async def agent_loop(opts: Namespace) -> None:
+async def agent_loop(opts: Namespace, tool_monitor_task: asyncio.Task) -> None:
     """Run the agent loop."""
-    num_iterations = 0
-    loop_last_tool_load = tool_data.last_tool_load
-    while (
-        (output := await create_agent(opts))
-        and num_iterations < opts.max_iterations
-        and not isinstance(output, str)
-    ):
-        num_iterations += 1
-        agent_log.info("New tool was created looping")
-        max_tool_load_loops = 5
-        tool_load_loops = 0
+    try:
+        num_iterations = 0
+        loop_last_tool_load = tool_data.last_tool_load
         while (
-            tool_load_loops < max_tool_load_loops
-            and loop_last_tool_load == tool_data.last_tool_load
+            (output := await create_agent(opts))
+            and num_iterations < opts.max_iterations
+            and not isinstance(output, str)
         ):
-            tool_load_loops += 1
-            agent_log.info("Waiting for new tool to load")
-            await asyncio.sleep(3)
+            num_iterations += 1
+            if opts.verbose > 0:
+                agent_log.info("New tool was created looping")
+            max_tool_load_loops = 5
+            tool_load_loops = 0
+            while (
+                tool_load_loops < max_tool_load_loops
+                and loop_last_tool_load == tool_data.last_tool_load
+            ):
+                tool_load_loops += 1
+                if opts.verbose > 0:
+                    agent_log.info("Waiting for new tool to load")
+                await asyncio.sleep(3)
 
-    if opts.output_file and isinstance(output, str):
-        with open(opts.output_file, "wt", encoding="utf-8") as f:
-            f.write(output)
+        if opts.output_file and isinstance(output, str):
+            with open(opts.output_file, "wt", encoding="utf-8") as f:
+                f.write(output)
 
-    agent_log.info("=" * 20)
-    agent_log.info(output)
-    print(output)
-    agent_log.info("=" * 20)
+        if opts.verbose > 0:
+            agent_log.info("=" * 20)
+            agent_log.info(output)
+        print(output)
+        if opts.verbose > 0:
+            agent_log.info("=" * 20)
+    finally:
+        try:
+            tool_monitor_task.cancel()
+        except Exception as _:  # pylint: disable=broad-exception-caught
+            print("tool_monitor_task was cancelled")
 
-    # tool_monitor_task.cancel()
-    # try:
-    #     await tool_monitor_task
-    # except asyncio.CancelledError:
-    #     print("tool_monitor_task was cancelled")
 
-
-async def agent_main(opts: Namespace) -> asyncio.Task:
+def agent_main(opts: Namespace, tool_monitor_task: asyncio.Task) -> asyncio.Task:
     """Start the agent."""
-    return asyncio.create_task(agent_loop(opts))
+    return asyncio.create_task(agent_loop(opts, tool_monitor_task))
 
 
-async def tool_main(opts: Namespace) -> asyncio.Task:  # pylint: disable=unused-argument
+def tool_main(opts: Namespace) -> asyncio.Task:
     """Start the folder monitor."""
     folder_path = str(os.path.join(sandbox_base, session.id))
-    monitor = FolderMonitor(folder_path)
+    monitor = FolderMonitor(folder_path, opts)
     # Start the task but don't await it.
     # This way the agent creation can happen even if the folder monitor is not yet finished.
     return asyncio.create_task(monitor.start())

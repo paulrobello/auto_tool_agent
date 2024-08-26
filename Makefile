@@ -16,7 +16,7 @@ export PIPENV_VERBOSITY=-1
 # Run the app.
 .PHONY: run
 run:	        # Run the app
-	$(python) -m $(lib) "$(ARG1)" "$(ARG2)" "$(ARG3)" "$(ARG4)" "$(ARG5)" "$(ARG6)" "$(ARG7)" "$(ARG8)" "$(ARG9)"
+	$(python) -m $(lib) --sandbox="$(shell pwd)/src/auto_tool_agent/sandbox"  "$(ARG1)" "$(ARG2)" "$(ARG3)" "$(ARG4)" "$(ARG5)" "$(ARG6)" "$(ARG7)" "$(ARG8)" "$(ARG9)"
 
 .PHONY: app_help
 app_help:		# Show app help

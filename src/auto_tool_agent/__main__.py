@@ -14,6 +14,10 @@ from rich.logging import RichHandler
 from auto_tool_agent.dotenv import load_dotenv
 
 from auto_tool_agent import __application_binary__, __application_title__, __version__
+from auto_tool_agent.lib.llm_providers import (
+    provider_default_models,
+    get_llm_provider_from_str,
+)
 
 from auto_tool_agent.tool_maker import tool_main, agent_main
 
@@ -65,8 +69,10 @@ def parse_args():
     parser.add_argument(
         "-v",
         "--verbose",
-        help="Output additional information.",
-        action="append",
+        type=int,
+        default=2,
+        help="Output additional information. Higher numbers are more verbose.",
+        choices=[0, 1, 2, 3],
     )
 
     parser.add_argument(
@@ -156,21 +162,26 @@ def parse_args():
 
     args = parser.parse_args()
 
-    config_dir = os.path.expanduser(args.data_dir) or os.path.join(
+    data_dir = os.path.expanduser(args.data_dir) or os.path.join(
         os.path.expanduser("~/"), ".config", "auto_tool_agent"
     )
-    load_dotenv(os.path.join(config_dir, ".env"))
 
-    os.makedirs(os.path.join(config_dir, "sandbox"), exist_ok=True)
-    config_file = os.path.join(config_dir, ".env")
+    config_file = os.path.join(data_dir, ".env")
+    args.sandbox_dir = os.path.expanduser(args.sandbox_dir or "") or os.path.join(
+        data_dir, "sandbox"
+    )
+    os.makedirs(data_dir, exist_ok=True)
+    os.makedirs(args.sandbox_dir, exist_ok=True)
     if os.path.exists(config_file):
-        log.info("Loading config file: %s", config_file)
+        if args.verbose > 0:
+            log.info("Loading config file: %s", config_file)
         load_dotenv(config_file)
     args.user_request = " ".join(args.user_request)
 
     if args.user_prompt == "-":
         args.user_prompt = None
-        log.info("Reading user request from stdin...")
+        if args.verbose > 1:
+            log.info("Reading user request from stdin...")
         args.user_request = sys.stdin.read()
         if not args.user_request:
             parser.error("No user request provided.")
@@ -183,13 +194,18 @@ def parse_args():
     if not args.user_prompt and not args.user_request:
         parser.error("Either --user_prompt or --user_request must be specified.")
 
+    args.model_name = (
+        args.model_name
+        or provider_default_models[get_llm_provider_from_str(args.provider)]
+    )
     return args
 
 
 async def async_main() -> None:
     """Main entry point for the application."""
     opts = parse_args()
-    log.info(opts)
+    if opts.verbose > 1:
+        log.info(opts)
     system_prompt_path = os.path.join(
         os.path.abspath(os.path.dirname(__file__)),
         "system_prompts",
@@ -203,10 +219,12 @@ async def async_main() -> None:
         raise FileNotFoundError(f"User prompt file {opts.user_prompt} does not exist.")
 
     opts.system_prompt = system_prompt_path
-    # exit(0)
-    tool_monitor_task = tool_main(opts)
-    agent_task = agent_main(opts)
-    await asyncio.gather(tool_monitor_task, agent_task)
+    try:
+        tool_monitor_task = tool_main(opts)
+        agent_task = agent_main(opts, tool_monitor_task)
+        await asyncio.gather(tool_monitor_task, agent_task)
+    except Exception as e:  # pylint: disable=broad-except
+        log.exception(e)
 
 
 def main() -> None:
