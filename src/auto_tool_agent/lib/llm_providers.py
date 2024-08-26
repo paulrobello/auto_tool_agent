@@ -15,6 +15,14 @@ class LlmProvider(str, Enum):
     GOOGLE = "Google"
 
 
+provider_default_models: dict[LlmProvider, str] = {
+    LlmProvider.OLLAMA: "llama3.1:8b",
+    LlmProvider.OPENAI: "gpt-4o",
+    LlmProvider.GROQ: "llama3-70b-8192",
+    LlmProvider.ANTHROPIC: "claude-3-haiku-20240307",
+    LlmProvider.GOOGLE: "gemini-pro",
+}
+
 llm_provider_types: list[LlmProvider] = list(LlmProvider)
 provider_select_options: list[tuple[str, LlmProvider]] = [
     (

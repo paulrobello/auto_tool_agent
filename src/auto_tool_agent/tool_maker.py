@@ -27,6 +27,8 @@ from auto_tool_agent.lib.llm_config import LlmConfig
 from auto_tool_agent.lib.llm_providers import get_llm_provider_from_str
 from auto_tool_agent.sandboxing import sandbox_base, session
 
+from src.auto_tool_agent.lib.llm_providers import provider_default_models
+
 AGENT_PREFIX = "[green]\\[agent][/green]"
 FOLDER_MONITOR_PREFIX = "[cyan]\\[folder_monitor][/cyan]"
 MODULE_LOADER_PREFIX = "[purple]\\[module_loader][/purple]"
@@ -190,7 +192,7 @@ class FolderMonitor:
 
 def get_output_format_prompt(output_format: str) -> str:
     """Get the output format prompt."""
-    preamble = """* When presenting your final answer follow the following instructions. These instructions are only for the final answer. If a tool was created or modified respond with the instructions already given:"""
+    preamble = """* When presenting your final answer follow the following instructions. These instructions are only for the final answer. If a tool was created or modified respond using the instructions already given:"""
     outro = """* Return the answer do not save it to a file."""
     if output_format == "markdown":
         return f"""
@@ -205,6 +207,7 @@ def get_output_format_prompt(output_format: str) -> str:
     * Output proper JSON.
     * Use a schema if provided.
     * Only output JSON. Do not include any other text / markdown or formatting.
+    * Do not include ```json
     {outro}
         """
     if output_format == "csv":
@@ -213,7 +216,9 @@ def get_output_format_prompt(output_format: str) -> str:
     * Output proper CSV format.
     * Ensure you use double quotes on fields containing line breaks or commas.
     * Include a header with names of the fields.
-    * Only output CSV. Do not include any other text / markdown or formatting.
+    * Only output the CSV header and data.
+    * Do not include any other text / Markdown.
+    * Do not include ```csv
     {outro}
         """
     if output_format == "text":
@@ -241,10 +246,10 @@ async def create_agent(opts: Namespace) -> Union[str, bool]:
             MessagesPlaceholder(variable_name="agent_scratchpad"),
         ]
     )
-
+    provider = get_llm_provider_from_str(opts.provider)
     llm = LlmConfig(
-        provider=get_llm_provider_from_str(opts.provider),
-        model_name=opts.model_name,
+        provider=provider,
+        model_name=opts.model_name or provider_default_models[provider],
         temperature=0.1,
     ).build_chat_model()
     tools: list[BaseTool] = [  # pyright: ignore [reportAssignmentType]

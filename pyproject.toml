@@ -23,6 +23,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Typing :: Typed"
 ]
+
 dependencies = [
     "boto3>=1.35.5",
     "python-env>=1.0.0",
@@ -67,6 +68,7 @@ dependencies = [
     "watchdog>=4.0.2",
     "python-dotenv>=1.0.1",
 ]
+
 [project.urls]
 Documentation = "https://github.com/paulrobello/auto_tool_agent/blob/main/README.md"
 Repository = "https://github.com/paulrobello/auto_tool_agent"
@@ -102,5 +104,3 @@ dev-dependencies = [
     "pyright>=1.1.377",
     "pre-commit>=3.8.0",
 ]
-
-[tool.auto_tool_agent.cli]

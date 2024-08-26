@@ -78,13 +78,13 @@ def parse_args():
         default="OpenAI",
         help="The LLM provider to use.",
     )
+
     parser.add_argument(
         "-m",
         "--model-name",
         dest="model_name",
         type=str,
-        default="gpt-4o",
-        help="The model name to user from the provider.",
+        help="The model name to user from the provider. If no specified, a default will be used.",
     )
 
     parser.add_argument(
@@ -95,6 +95,7 @@ def parse_args():
         default="aws.md",
         help="The system prompt file name with default of aws.md.",
     )
+
     parser.add_argument(
         "-u",
         "--user_prompt",
@@ -102,6 +103,7 @@ def parse_args():
         type=str,
         help="The user prompt file name to use for user_request. Use - to read from stdin.",
     )
+
     parser.add_argument(
         "-i",
         "--max_iterations",
@@ -125,6 +127,7 @@ def parse_args():
         nargs="*",
         help="The user request to fulfill. Required if --user_prompt is not specified.",
     )
+
     parser.add_argument(
         "-d",
         "--data_dir",
@@ -134,6 +137,7 @@ def parse_args():
         or "~/.config/auto_tool_agent",
         help="The directory to store data and generated tools. Default is ~/.config/auto_tool_agent.",
     )
+
     parser.add_argument(
         "-f",
         "--format",
@@ -152,9 +156,6 @@ def parse_args():
     )
 
     args = parser.parse_args()
-
-    if not args.user_prompt and not args.user_request:
-        parser.error("Either --user_prompt or user_request must be specified.")
 
     config_dir = os.path.expanduser(args.data_dir) or os.path.join(
         os.path.expanduser("~/"), ".config", "auto_tool_agent"
@@ -176,6 +177,10 @@ def parse_args():
     if args.user_prompt:
         with open(args.user_prompt, "rt", encoding="utf-8") as f:
             args.user_request = f.read()
+    if args.user_request is not None:
+        args.user_request = args.user_request.strip()
+    if not args.user_prompt and not args.user_request:
+        parser.error("Either --user_prompt or --user_request must be specified.")
 
     return args
 
