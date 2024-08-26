@@ -11,7 +11,7 @@ from argparse import ArgumentParser
 from rich.console import Console
 from rich.logging import RichHandler
 
-from dotenv import load_dotenv
+from auto_tool_agent.dotenv import load_dotenv
 
 from auto_tool_agent import __application_binary__, __application_title__, __version__
 
@@ -44,7 +44,6 @@ logging.basicConfig(
         fileHandler,
     ],
 )
-
 
 log = logging.getLogger("[white]app[/white]")
 
@@ -160,6 +159,8 @@ def parse_args():
     config_dir = os.path.expanduser(args.data_dir) or os.path.join(
         os.path.expanduser("~/"), ".config", "auto_tool_agent"
     )
+    load_dotenv(os.path.join(config_dir, ".env"))
+
     os.makedirs(os.path.join(config_dir, "sandbox"), exist_ok=True)
     config_file = os.path.join(config_dir, ".env")
     if os.path.exists(config_file):
@@ -185,7 +186,7 @@ def parse_args():
     return args
 
 
-async def main() -> None:
+async def async_main() -> None:
     """Main entry point for the application."""
     opts = parse_args()
     log.info(opts)
@@ -208,5 +209,10 @@ async def main() -> None:
     await asyncio.gather(tool_monitor_task, agent_task)
 
 
+def main() -> None:
+    """Main entry point for the application."""
+    asyncio.run(async_main())
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

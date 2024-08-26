@@ -38,6 +38,7 @@ uv-sync:
 
 .PHONY: setup
 setup: uv-lock uv-sync	        # use this for first time run
+	uv remove python-dotenv && uv add python-dotenv # hack to get python-dotenv working
 
 .PHONY: resetup
 resetup: remove-venv setup			# Recreate the virtual environment from scratch

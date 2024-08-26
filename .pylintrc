@@ -1,5 +1,5 @@
 [MASTER]
-ignore=sandbox
+ignore=sandbox,dotenv
 persistent=yes
 suggestion-mode=yes
 py-version = 3.11.0

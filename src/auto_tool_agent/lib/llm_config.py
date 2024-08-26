@@ -100,7 +100,11 @@ class LlmConfig:
                 )
         elif self.provider == LlmProvider.OPENAI:
             if self.mode == LlmMode.BASE:
-                return OpenAI(model=self.model_name, temperature=self.temperature)
+                return OpenAI(
+                    model=self.model_name,
+                    temperature=self.temperature,
+                    streaming=self.streaming,
+                )
             if self.mode == LlmMode.CHAT:
                 return ChatOpenAI(
                     model=self.model_name,

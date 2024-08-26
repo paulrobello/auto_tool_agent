@@ -27,7 +27,7 @@ from auto_tool_agent.lib.llm_config import LlmConfig
 from auto_tool_agent.lib.llm_providers import get_llm_provider_from_str
 from auto_tool_agent.sandboxing import sandbox_base, session
 
-from src.auto_tool_agent.lib.llm_providers import provider_default_models
+from auto_tool_agent.lib.llm_providers import provider_default_models
 
 AGENT_PREFIX = "[green]\\[agent][/green]"
 FOLDER_MONITOR_PREFIX = "[cyan]\\[folder_monitor][/cyan]"
