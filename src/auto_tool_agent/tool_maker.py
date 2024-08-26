@@ -24,7 +24,7 @@ from auto_tool_agent.ai_tools import (
     rename_file,
 )
 from auto_tool_agent.lib.llm_config import LlmConfig
-from auto_tool_agent.lib.llm_providers import LlmProvider
+from auto_tool_agent.lib.llm_providers import get_llm_provider_from_str
 from auto_tool_agent.sandboxing import sandbox_base, session
 
 AGENT_PREFIX = "[green]\\[agent][/green]"
@@ -203,7 +203,7 @@ def get_output_format_prompt(output_format: str) -> str:
         return f"""
 {preamble}
     * Output proper JSON.
-    * Use a schema if provided. 
+    * Use a schema if provided.
     * Only output JSON. Do not include any other text / markdown or formatting.
     {outro}
         """
@@ -243,9 +243,9 @@ async def create_agent(opts: Namespace) -> Union[str, bool]:
     )
 
     llm = LlmConfig(
-        provider=LlmProvider.OPENAI,
-        model_name=os.environ.get("OPENAI_MODEL_NAME", "gpt-4o"),
-        temperature=0.1
+        provider=get_llm_provider_from_str(opts.provider),
+        model_name=opts.model_name,
+        temperature=0.1,
     ).build_chat_model()
     tools: list[BaseTool] = [  # pyright: ignore [reportAssignmentType]
         list_files,

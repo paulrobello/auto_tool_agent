@@ -71,13 +71,22 @@ def parse_args():
     )
 
     parser.add_argument(
-        "-r",
-        "--region",
-        dest="regions",
-        action="append",
-        type=str,
-        help="The AWS region to run in. Can be specified multiple times for multiple regions.",
+        "-p",
+        "--provider",
+        dest="provider",
+        choices=["OpenAI", "Anthropic", "Google", "Groq", "Ollama"],
+        default="OpenAI",
+        help="The LLM provider to use.",
     )
+    parser.add_argument(
+        "-m",
+        "--model-name",
+        dest="model_name",
+        type=str,
+        default="gpt-4o",
+        help="The model name to user from the provider.",
+    )
+
     parser.add_argument(
         "-s",
         "--system_prompt",
@@ -94,7 +103,7 @@ def parse_args():
         help="The user prompt file name to use for user_request. Use - to read from stdin.",
     )
     parser.add_argument(
-        "-m",
+        "-i",
         "--max_iterations",
         dest="max_iterations",
         type=int,

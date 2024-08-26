@@ -49,6 +49,7 @@ class LlmConfig:
     model_name: str
     mode: LlmMode = LlmMode.CHAT
     temperature: float = 0.5
+    streaming: bool = False
 
     def to_json(self) -> dict:
         """Return dict for use with json"""
@@ -104,7 +105,7 @@ class LlmConfig:
                 return ChatOpenAI(
                     model=self.model_name,
                     temperature=self.temperature,
-                    stream_usage=True,
+                    streaming=self.streaming,
                 )
             if self.mode == LlmMode.EMBEDDINGS:
                 return OpenAIEmbeddings(model=self.model_name)
@@ -114,7 +115,7 @@ class LlmConfig:
                     f"{self.provider} provider does not support mode {self.mode}"
                 )
             if self.mode == LlmMode.CHAT:
-                return ChatGroq(model=self.model_name, temperature=self.temperature)  # type: ignore
+                return ChatGroq(model=self.model_name, temperature=self.temperature, streaming=self.streaming)  # type: ignore
             if self.mode == LlmMode.EMBEDDINGS:
                 raise ValueError(
                     f"{self.provider} provider does not support mode {self.mode}"
@@ -128,6 +129,7 @@ class LlmConfig:
                 return ChatAnthropic(  # pyright: ignore [reportCallIssue]
                     model=self.model_name,  # pyright: ignore [reportCallIssue]
                     temperature=self.temperature,
+                    streaming=self.streaming,
                 )
             if self.mode == LlmMode.EMBEDDINGS:
                 raise ValueError(

@@ -23,3 +23,11 @@ provider_select_options: list[tuple[str, LlmProvider]] = [
     )
     for p in llm_provider_types
 ]
+
+
+def get_llm_provider_from_str(llm_provider_str: str) -> LlmProvider:
+    """Get the LLMProvider given a string matching one of its values."""
+    for llm_provider in LlmProvider:
+        if llm_provider.value == llm_provider_str:
+            return llm_provider
+    raise ValueError(f"Invalid LLM provider: {llm_provider_str}")
