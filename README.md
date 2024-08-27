@@ -51,18 +51,21 @@ make app_help
 ```
 If using for AWS you must assume the role you want to use prior to running the agent.
 
+### Dev mode uses make
 Use ARG1, ARG2... env vars to pass arguments to the agent
 ```bash
 ARG1="list all lambda functions in region us-east-1" make run
 ```
 
 ```bash
-ARG1="list all s3 buckets in region us-east-1" make run
+ARG1="-f" ARG2="csv" ARG3="list all s3 buckets in region us-east-1" make run
 ```
 
-You can also request the agent update or add features to existing tools:
+### Normal run examples
+
+Output CSV format to file data.csv using query of s3 buckets and their storage classes:
 ```bash
-ARG1="add boto3 paginator to tool list_s3_buckets" make run
+auto_tool_agent --format csv --output data.csv "list all s3 buckets and their storage class"
 ```
 
 ## Output format examples

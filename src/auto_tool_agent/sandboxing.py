@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import shutil
 
-from auto_tool_agent.__main__ import session
+from auto_tool_agent.session import session
 
 
 # sandbox_base = os.path.join(os.path.abspath(os.path.dirname(__file__)), "sandbox")

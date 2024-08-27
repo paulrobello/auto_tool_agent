@@ -6,10 +6,7 @@ import asyncio
 import os
 import sys
 import logging
-from argparse import ArgumentParser, Namespace
-from dataclasses import dataclass
-from typing import Optional
-from uuid import uuid4
+from argparse import ArgumentParser
 
 from rich.console import Console
 from rich.logging import RichHandler
@@ -21,6 +18,7 @@ from auto_tool_agent.lib.llm_providers import (
     provider_default_models,
     get_llm_provider_from_str,
 )
+from auto_tool_agent.session import session
 
 from auto_tool_agent.tool_maker import tool_main, agent_main
 
@@ -55,23 +53,6 @@ logging.basicConfig(
 log = logging.getLogger("[white]app[/white]")
 
 
-@dataclass
-class Session:
-    """Session"""
-
-    id: str
-    opts: Namespace
-
-    def __init__(
-        self,
-        id: Optional[str] = None,  # pylint: disable=redefined-builtin
-    ) -> None:
-        self.id = id or str(uuid4())
-
-
-session = Session(id="tools_tests")
-
-
 def parse_args():
     """Parse command line arguments."""
     parser = ArgumentParser(
@@ -99,7 +80,8 @@ def parse_args():
         "-p",
         "--provider",
         dest="provider",
-        choices=["OpenAI", "Anthropic", "Google", "Groq", "Ollama"],
+        # choices=["OpenAI", "Anthropic", "Google", "Groq", "Ollama"]
+        choices=["OpenAI", "Anthropic"],
         default="OpenAI",
         help="The LLM provider to use.",
     )
@@ -169,7 +151,7 @@ def parse_args():
         dest="output_format",
         type=str,
         choices=["none", "text", "markdown", "csv", "json"],
-        default="Markdown",
+        default="markdown",
         help="Specifies the output format that the AI should generate. Default is markdown.",
     )
 
@@ -177,7 +159,7 @@ def parse_args():
         "--sandbox_dir",
         dest="sandbox_dir",
         type=str,
-        help="The directory to sandbox agent. defaults to data_dir/sandbox.",
+        help="The directory to sandbox agent. defaults to DATA_DIR/sandbox.",
     )
 
     args = parser.parse_args()

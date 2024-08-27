@@ -18,7 +18,7 @@ from langchain_core.tools import BaseTool
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from auto_tool_agent.__main__ import session
+from auto_tool_agent.session import session
 from auto_tool_agent.ai_tools import (
     list_files,
     read_file,
@@ -87,7 +87,7 @@ class ModuleLoader(FileSystemEventHandler):
             and current_time - self.last_loaded_modules[module_path] < 1
         ):
             return
-        self.load_module(module_path)
+        self.load_module(str(module_path))
         self.last_loaded_modules[module_path] = current_time
 
     def load_module(self, module_path: str) -> None:
