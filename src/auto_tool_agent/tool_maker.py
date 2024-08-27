@@ -17,6 +17,8 @@ from langchain_core.tools import BaseTool
 
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+
+from auto_tool_agent.__main__ import session
 from auto_tool_agent.ai_tools import (
     list_files,
     read_file,
@@ -25,7 +27,6 @@ from auto_tool_agent.ai_tools import (
 )
 from auto_tool_agent.lib.llm_config import LlmConfig
 from auto_tool_agent.lib.llm_providers import get_llm_provider_from_str
-from auto_tool_agent.sandboxing import sandbox_base, session
 
 from auto_tool_agent.lib.llm_providers import provider_default_models
 
@@ -341,6 +342,8 @@ async def agent_loop(opts: Namespace, tool_monitor_task: asyncio.Task) -> None:
         print(output)
         if opts.verbose > 0:
             agent_log.info("=" * 20)
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        agent_log.exception(e)
     finally:
         try:
             tool_monitor_task.cancel()
@@ -355,7 +358,7 @@ def agent_main(opts: Namespace, tool_monitor_task: asyncio.Task) -> asyncio.Task
 
 def tool_main(opts: Namespace) -> asyncio.Task:
     """Start the folder monitor."""
-    folder_path = str(os.path.join(sandbox_base, session.id))
+    folder_path = str(os.path.join(opts.sandbox_dir, session.id))
     monitor = FolderMonitor(folder_path, opts)
     # Start the task but don't await it.
     # This way the agent creation can happen even if the folder monitor is not yet finished.

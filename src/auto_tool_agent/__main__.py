@@ -6,7 +6,10 @@ import asyncio
 import os
 import sys
 import logging
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
+from dataclasses import dataclass
+from typing import Optional
+from uuid import uuid4
 
 from rich.console import Console
 from rich.logging import RichHandler
@@ -50,6 +53,23 @@ logging.basicConfig(
 )
 
 log = logging.getLogger("[white]app[/white]")
+
+
+@dataclass
+class Session:
+    """Session"""
+
+    id: str
+    opts: Namespace
+
+    def __init__(
+        self,
+        id: Optional[str] = None,  # pylint: disable=redefined-builtin
+    ) -> None:
+        self.id = id or str(uuid4())
+
+
+session = Session(id="tools_tests")
 
 
 def parse_args():
@@ -203,26 +223,30 @@ def parse_args():
 
 async def async_main() -> None:
     """Main entry point for the application."""
-    opts = parse_args()
-    if opts.verbose > 1:
-        log.info(opts)
-    system_prompt_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)),
-        "system_prompts",
-        str(opts.system_prompt),
-    )
-    if not os.path.exists(system_prompt_path):
-        raise FileNotFoundError(
-            f"System prompt file {opts.system_prompt} does not exist in system_prompts folder."
-        )
-    if opts.user_prompt and not os.path.exists(opts.user_prompt):
-        raise FileNotFoundError(f"User prompt file {opts.user_prompt} does not exist.")
-
-    opts.system_prompt = system_prompt_path
     try:
+        opts = parse_args()
+        session.opts = opts
+        if opts.verbose > 1:
+            log.info(opts)
+        system_prompt_path = os.path.join(
+            os.path.abspath(os.path.dirname(__file__)),
+            "system_prompts",
+            str(opts.system_prompt),
+        )
+        if not os.path.exists(system_prompt_path):
+            raise FileNotFoundError(
+                f"System prompt file {opts.system_prompt} does not exist in system_prompts folder."
+            )
+        if opts.user_prompt and not os.path.exists(opts.user_prompt):
+            raise FileNotFoundError(
+                f"User prompt file {opts.user_prompt} does not exist."
+            )
+
+        opts.system_prompt = system_prompt_path
+
         tool_monitor_task = tool_main(opts)
         agent_task = agent_main(opts, tool_monitor_task)
-        await asyncio.gather(tool_monitor_task, agent_task)
+        await asyncio.gather(tool_monitor_task, agent_task, return_exceptions=True)
     except Exception as e:  # pylint: disable=broad-except
         log.exception(e)
 

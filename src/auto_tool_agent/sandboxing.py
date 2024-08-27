@@ -4,34 +4,18 @@ from __future__ import annotations
 
 import os
 import shutil
-from dataclasses import dataclass
-from typing import Optional
-from uuid import uuid4
+
+from auto_tool_agent.__main__ import session
 
 
-sandbox_base = os.path.join(os.path.abspath(os.path.dirname(__file__)), "sandbox")
-
-
-@dataclass
-class Session:
-    """Session"""
-
-    id: str
-
-    def __init__(
-        self, id: Optional[str] = None  # pylint: disable=redefined-builtin
-    ) -> None:
-        self.id = id or str(uuid4())
-
-
-session = Session("tools_tests")
+# sandbox_base = os.path.join(os.path.abspath(os.path.dirname(__file__)), "sandbox")
 
 
 def clear_output_folder() -> None:
     """
     Clear the output folder
     """
-    output_dir = os.path.join(sandbox_base, session.id)
+    output_dir = os.path.join(session.opts.sandbox_dir, session.id)
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
         os.makedirs(output_dir)
@@ -44,7 +28,7 @@ def create_session_folder() -> bool:
     Returns:
         bool: True if successful, False otherwise
     """
-    folder_name = os.path.join(sandbox_base, session.id)
+    folder_name = os.path.join(session.opts.sandbox_dir, session.id)
     os.makedirs(folder_name, exist_ok=True)
     return True
 
