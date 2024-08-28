@@ -68,6 +68,11 @@ Output CSV format to file data.csv using query of s3 buckets and their storage c
 auto_tool_agent --format csv --output data.csv "list all s3 buckets and their storage class"
 ```
 
+Output Markdown format to file data.md using query of top 3 hacker news articles:
+```bash
+auto_tool_agent.exe -f markdown -o data.markdown -i 5 -s generic.md "fetch me the top 3 articles from hacker news"
+```
+
 ## Output format examples
 You can specify any of the supported output formats enhance the system prompt for better output formatting.  
 ### Markdown
@@ -89,6 +94,16 @@ ARG1='-f' ARG2='json' ARG3='-o' ARG4='data.json' ARG5='list all s3 buckets in re
 ```bash
 ARG1='-f' ARG2='text' ARG3='-o' ARG4='data.txt' ARG5='list all s3 buckets in region us-east-1.' make run
 ```
+## Folders dev mode
+* REPO_ROOT/src/auto_tool_agent/sandbox - sandbox folder where the agent will write its tools
+* REPO_ROOT/src/auto_tool_agent/tools - tools available to agent that it cant edit
+* REPO_ROOT/src/auto_tool_agent/system_prompts - system prompts folder
+* REPO_ROOT/tools_archive - good tools that are currently disabled
+
+## Folders installed mode
+* ~/.auto_tool_agent/sandbox - sandbox folder where the agent will write its tools
+* ~/.auto_tool_agent/system_prompts - system prompts folder
+
 
 ## Agent Logic
 

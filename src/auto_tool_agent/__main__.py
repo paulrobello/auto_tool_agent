@@ -99,8 +99,8 @@ def parse_args():
         "--system_prompt",
         dest="system_prompt",
         type=str,
-        default="aws.md",
-        help="The system prompt file name with default of aws.md.",
+        default="generic.md",
+        help="The system prompt file name with default of generic.md.",
     )
 
     parser.add_argument(
@@ -167,6 +167,7 @@ def parse_args():
     data_dir = os.path.expanduser(args.data_dir) or os.path.join(
         os.path.expanduser("~/"), ".config", "auto_tool_agent"
     )
+    args.data_dir = data_dir
 
     config_file = os.path.join(data_dir, ".env")
     args.sandbox_dir = os.path.expanduser(args.sandbox_dir or "") or os.path.join(
@@ -211,10 +212,17 @@ async def async_main() -> None:
         if opts.verbose > 1:
             log.info(opts)
         system_prompt_path = os.path.join(
-            os.path.abspath(os.path.dirname(__file__)),
+            os.path.abspath(opts.data_dir),
             "system_prompts",
             str(opts.system_prompt),
         )
+        if not os.path.exists(system_prompt_path):
+            system_prompt_path = os.path.join(
+                os.path.abspath(os.path.dirname(__file__)),
+                "system_prompts",
+                str(opts.system_prompt),
+            )
+
         if not os.path.exists(system_prompt_path):
             raise FileNotFoundError(
                 f"System prompt file {opts.system_prompt} does not exist in system_prompts folder."
