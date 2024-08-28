@@ -34,12 +34,12 @@ def list_s3_buckets_and_storage_class(region: str = "None"):
             # Filter by region if specified
             if region in ["None", None, bucket_location]:
                 # Get the storage class for the bucket (by checking a sample object's storage class, if exists)
-                storage_class = "Standard"  # Default assumption
+                storage_class = "STANDARD"  # Default assumption
                 try:
                     objects = s3.list_objects_v2(Bucket=bucket_name, MaxKeys=1)
                     if "Contents" in objects and objects["Contents"]:
                         first_object = objects["Contents"][0]
-                        storage_class = first_object.get("StorageClass", "Standard")
+                        storage_class = first_object.get("StorageClass", "STANDARD")
                 except Exception as e:
                     storage_class = f"Error retrieving storage class: {str(e)}"
 
