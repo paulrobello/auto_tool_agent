@@ -1,4 +1,4 @@
-default_stages: [pre-commit, pre-push]
+default_stages: [pre-push]
 default_language_version:
     python: python3.11
 fail_fast: false
