@@ -1131,7 +1131,7 @@ wheels = [
 
 [[package]]
 name = "langchain"
-version = "0.2.14"
+version = "0.2.15"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -1145,9 +1145,9 @@ dependencies = [
     { name = "sqlalchemy" },
     { name = "tenacity" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3d/de/61f635dcdafdb261d7bc93bc5330a21ff7c216339b95ed1c9364111c61f5/langchain-0.2.14.tar.gz", hash = "sha256:dc2aa5a58882054fb5d043c39ab8332ebd055f88f17839da68e1c7fd0a4fefe2", size = 411290 }
+sdist = { url = "https://files.pythonhosted.org/packages/c9/f6/9e1044e0b805f5f704435f9b378c26f02dfad3cd361f455e0a1129f8d7ad/langchain-0.2.15.tar.gz", hash = "sha256:f613ce7594be34f9bac687134a56f6e8274951907b798dbd037aefc95df78953", size = 414499 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8a/27/99ecada550317ef7bc89f439cd491ac106bbe9bae31ecdb47d2c6e03016e/langchain-0.2.14-py3-none-any.whl", hash = "sha256:eed76194ee7d9c081037a3df7868d4de90e0410b51fc1ca933a8379e464bf40c", size = 997752 },
+    { url = "https://files.pythonhosted.org/packages/2a/5f/fec41e34c31265e4dc197ebe24d138c73dfe6a15832fe5db9a83c70e570c/langchain-0.2.15-py3-none-any.whl", hash = "sha256:9e6231441870aaa8523be24a5785ccccfdde759a7e27dd082b6ec80f68e49dec", size = 1001055 },
 ]
 
 [[package]]
@@ -1166,7 +1166,7 @@ wheels = [
 
 [[package]]
 name = "langchain-community"
-version = "0.2.12"
+version = "0.2.13"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -1180,9 +1180,9 @@ dependencies = [
     { name = "sqlalchemy" },
     { name = "tenacity" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/aa/29/10a27e2a5285decb9cefd4ddd9bf814fb68d6e848cc099a7b3b6b60619aa/langchain_community-0.2.12.tar.gz", hash = "sha256:d671cfc6a4f3b65f49a2e59ab420d0164f109d0a56fc4b4996518205c63b8c7e", size = 1566700 }
+sdist = { url = "https://files.pythonhosted.org/packages/68/9c/3a6a772d62be37b50c37822fa0323a458188eb30317b94a05e405a984c02/langchain_community-0.2.13.tar.gz", hash = "sha256:493f5f9087b657d8f1dfd4c25169db9ecab9f96916c2845ed92babe57e1f6cda", size = 1581042 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/83/3a/3becea565ec4232d6d7f6d8774696e2d64e94b388fa3c45bfa264a3787c2/langchain_community-0.2.12-py3-none-any.whl", hash = "sha256:50e74473dd2309bdef561760afbbf0c5ea17ed91fc4dfa0d52279dd16d6d34e0", size = 2311611 },
+    { url = "https://files.pythonhosted.org/packages/d6/56/5070c4461bdd848b9c6dcd52a2b65074bf9d9aa8ac01c5fdb0df4d9aa470/langchain_community-0.2.13-py3-none-any.whl", hash = "sha256:37fb1944f17b373e7c5bbc4398c3140ee65a135a4627b7b9120bd308163b9175", size = 2327643 },
 ]
 
 [[package]]
@@ -1244,16 +1244,16 @@ wheels = [
 
 [[package]]
 name = "langchain-openai"
-version = "0.1.22"
+version = "0.1.23"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "langchain-core" },
     { name = "openai" },
     { name = "tiktoken" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7e/5a/0881f292df446d5ad47a181bd6d692ec33ac3c4148440bf1451648777238/langchain_openai-0.1.22.tar.gz", hash = "sha256:0cf93133f230a893e3b0cc2a792bbf2580950e879b577f6e8d4ff9963a7de44b", size = 45292 }
+sdist = { url = "https://files.pythonhosted.org/packages/91/cb/216fd869f96b58716062e939cc6ad11f150f96198fbc750bec1c53c0f858/langchain_openai-0.1.23.tar.gz", hash = "sha256:ed7f16671ea0af177ac5f82d5645a746c5097c56f97b31798e5c07b5c84f0eed", size = 45353 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bb/82/6d6cb06f3fa41610918815a852ac7a2f067ec79df76c8d651014f12d6c31/langchain_openai-0.1.22-py3-none-any.whl", hash = "sha256:e184ab867a30f803dc210a388537186b1b670a33d910a7e0fa4e0329d3b6c654", size = 51954 },
+    { url = "https://files.pythonhosted.org/packages/0e/f1/12cd80e136b6bf5f498bee178084e71d48f664e5639e9cc7f900244d9f1c/langchain_openai-0.1.23-py3-none-any.whl", hash = "sha256:8e3d215803e157f26480c6108eb4333629832b1a0e746723060c24f93b8b78f4", size = 51969 },
 ]
 
 [[package]]
