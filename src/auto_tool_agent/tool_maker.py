@@ -91,11 +91,13 @@ async def create_agent(opts: Namespace) -> Union[str, bool]:
         ]
     )
     provider = get_llm_provider_from_str(opts.provider)
-    llm = LlmConfig(
+    llm_config = LlmConfig(
         provider=provider,
         model_name=opts.model_name or provider_default_models[provider],
         temperature=0.1,
-    ).build_chat_model()
+    )
+    llm = llm_config.build_chat_model()
+    agent_log.info(llm_config)
     tools: list[BaseTool] = [  # pyright: ignore [reportAssignmentType]
         list_files,
         read_file,
