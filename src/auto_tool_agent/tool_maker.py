@@ -2,22 +2,17 @@
 
 from __future__ import annotations
 import asyncio
-import importlib
-import importlib.util
 import logging
 import os
-import time
 from argparse import Namespace
-from dataclasses import dataclass, field
 from typing import Union
 from rich import print  # pylint: disable=redefined-builtin
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_core.prompts import MessagesPlaceholder, ChatPromptTemplate
 from langchain_core.tools import BaseTool
 
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
-
+from auto_tool_agent.folder_monitor import FolderMonitor
+from auto_tool_agent.tool_data import tool_data
 from auto_tool_agent.session import session
 from auto_tool_agent.ai_tools import (
     list_files,
@@ -31,171 +26,8 @@ from auto_tool_agent.lib.llm_providers import get_llm_provider_from_str
 from auto_tool_agent.lib.llm_providers import provider_default_models
 
 AGENT_PREFIX = "[green]\\[agent][/green]"
-FOLDER_MONITOR_PREFIX = "[cyan]\\[folder_monitor][/cyan]"
-MODULE_LOADER_PREFIX = "[purple]\\[module_loader][/purple]"
 
 agent_log = logging.getLogger(AGENT_PREFIX)
-fm_log = logging.getLogger(FOLDER_MONITOR_PREFIX)
-ml_log = logging.getLogger(MODULE_LOADER_PREFIX)
-
-
-@dataclass
-class TooData:
-    """Tool data."""
-
-    last_tool_load: float = 0
-    ai_tools: dict[str, BaseTool] = field(default_factory=dict)
-    bad_tools: list[str] = field(default_factory=list)
-
-    def add_good_tool(self, name: str, tool: BaseTool) -> None:
-        """Add a good tool."""
-        if name in self.bad_tools:
-            self.bad_tools.remove(name)
-        self.ai_tools[name] = tool
-
-    def add_bad_tool(self, name: str) -> None:
-        """Add a bad tool."""
-        if name in self.ai_tools:
-            del self.ai_tools[name]
-        if name not in self.bad_tools:
-            self.bad_tools.append(name)
-
-
-tool_data = TooData()
-
-
-class ModuleLoader(FileSystemEventHandler):
-    """Load modules when they are modified."""
-
-    def __init__(self, folder_path, opts: Namespace) -> None:
-        """Initialize the event handler."""
-        super().__init__()
-        self.opts = opts
-        self.folder_path = folder_path
-        # the folder to watch
-        self.load_existing_modules()
-        # load any existing modules
-        self.last_loaded_modules = {}
-        # used to avoid loading modules too often
-
-    def on_modified(self, event):
-        """Load the modified module."""
-        current_time = time.time()
-        module_path = event.src_path
-        if (
-            module_path in self.last_loaded_modules
-            and current_time - self.last_loaded_modules[module_path] < 1
-        ):
-            return
-        self.load_module(str(module_path))
-        self.last_loaded_modules[module_path] = current_time
-
-    def load_module(self, module_path: str) -> None:
-        """Load the specified module."""
-        module_path = module_path.replace("\\", "/")
-        module_name = module_path[:-3]  # remove .py extension
-
-        try:
-            if (
-                not os.path.isfile(module_path)
-                or module_path.endswith("~")
-                or "__init__" in module_path
-            ):
-                return
-            if module_path.endswith(".py"):
-                spec = importlib.util.spec_from_file_location(module_name, module_path)
-                if not spec:
-                    ml_log.error(
-                        "[red]Error[/red]: unable to load module %s", module_name
-                    )
-                    return
-                module = importlib.util.module_from_spec(spec)
-                if spec.loader is None:
-                    ml_log.error(
-                        "[red]Error[/red]: unable to find loader for module %s",
-                        module_name,
-                    )
-                    return
-                # ml_log.info("Attempting to load module: %s", module_name)
-                spec.loader.exec_module(module)
-                ml_log.info("Loaded module: %s", module_name)
-                new_tools: list[BaseTool] = self.discover_tools(module)
-                # ml_log.info("New tools found: %d", len(new_tools))
-                if len(new_tools) != 1:
-                    ml_log.error(
-                        "[red]Error[/red]: found %d != 1 new tools for module %s",
-                        len(new_tools),
-                        module_name,
-                    )
-                    tool_data.add_bad_tool(module_name)
-                    return
-                tool_data.add_good_tool(module_name, new_tools[0])
-            else:
-                if self.opts.verbose > 1:
-                    ml_log.info("Ignoring non-Python file: %s", module_path)
-        except Exception as e:  # pylint: disable=broad-except
-            tool_data.add_bad_tool(module_name)
-            ml_log.exception(
-                "[red]Error[/red]: loading module %s: %s", module_path, str(e)
-            )
-
-    def load_existing_modules(self) -> None:
-        """Load any existing modules in the folder."""
-        for filename in os.listdir(self.folder_path):
-            module_path = os.path.join(self.folder_path, filename)
-            self.load_module(module_path)
-
-    def discover_tools(self, module) -> list[BaseTool]:
-        """
-        Discovers and builds a list of functions annotated with "@tool" in the given module.
-
-        Args:
-            module (module): A Python module to inspect.
-
-        Returns:
-            set: A set of functions annotated with "@tool".
-        """
-        tools: list[BaseTool] = []
-        for name in dir(module):
-            func = getattr(module, name)
-            if isinstance(func, BaseTool):
-                if self.opts.verbose > 1:
-                    ml_log.info("found tool: %s", name)
-                tools.append(func)
-                tool_data.last_tool_load = time.time()
-        return tools
-
-
-class FolderMonitor:
-    """Monitor the specified folder for changes and load new modules."""
-
-    def __init__(self, folder_path: str, opts: Namespace) -> None:
-        """Initialize the folder monitor."""
-        self.folder_path = folder_path
-        if not os.path.exists(self.folder_path):
-            raise ValueError(f"Folder {self.folder_path} does not exist.")
-        self.opts = opts
-        self.observer = Observer()
-        self.event_handler = ModuleLoader(folder_path, opts)
-
-    async def start(self) -> None:
-        """Start the folder monitor."""
-        if self.opts.verbose > 0:
-            fm_log.info("Starting up: %s", self.folder_path)
-        self.observer.schedule(self.event_handler, self.folder_path, recursive=True)
-        self.observer.start()
-        while True:
-            try:
-                await asyncio.sleep(1)
-            except Exception as _:  # pylint: disable=broad-except
-                break
-
-    async def stop(self) -> None:
-        """Stop the folder monitor."""
-        if self.opts.verbose > 0:
-            fm_log.info("Shutting down:  %s", self.folder_path)
-        self.observer.stop()
-        self.observer.join()
 
 
 def get_output_format_prompt(output_format: str) -> str:

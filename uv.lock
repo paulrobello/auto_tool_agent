@@ -326,30 +326,30 @@ wheels = [
 
 [[package]]
 name = "boto3"
-version = "1.35.6"
+version = "1.35.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "botocore" },
     { name = "jmespath" },
     { name = "s3transfer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/bc/c0/d21092dc3652a3900cb5d51f1b07814a0125a2123cbbaebc0c8653822782/boto3-1.35.6.tar.gz", hash = "sha256:b41deed9ca7e0a619510a22e256e3e38b5f532624b4aff8964a1e870877b37bc", size = 108602 }
+sdist = { url = "https://files.pythonhosted.org/packages/59/d2/95729dcca737eccb19bfefdd9a2fa89beb9263e84e9543163349f7007090/boto3-1.35.7.tar.gz", hash = "sha256:05bd349cf260ba177924f38d721e427e2b3a6dd0fa8a18fa4ffc1b889633b181", size = 108623 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9a/04/abe7857064143a7d8e48b33d45a7d3c40797d5945484f222ea000cde3c05/boto3-1.35.6-py3-none-any.whl", hash = "sha256:c35c560ef0cb0f133b6104bc374d60eeb7cb69c1d5d7907e4305a285d162bef0", size = 139143 },
+    { url = "https://files.pythonhosted.org/packages/91/56/2b0c6e700c0ecf658399f78a9bdf3c5edb6be096c5e7ec13ed1bdbfd074c/boto3-1.35.7-py3-none-any.whl", hash = "sha256:bfbdf7c8f2e3eb70e4309cdcf5c9c7940e1fed4f645cdfb52581e7e67d3c8cab", size = 139143 },
 ]
 
 [[package]]
 name = "botocore"
-version = "1.35.6"
+version = "1.35.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jmespath" },
     { name = "python-dateutil" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3a/ae/bcff802844625f2893f85d707bd6d662a9b7b593e58bfe1f9a16ef30eaa1/botocore-1.35.6.tar.gz", hash = "sha256:93ef31b80b05758db4dd67e010348a05b9ff43f82839629b7ac334f2a454996e", size = 12686313 }
+sdist = { url = "https://files.pythonhosted.org/packages/d1/2f/9da463c355b1f744223383c8efc817a6db1789341a842cfdbf1522840684/botocore-1.35.7.tar.gz", hash = "sha256:85e4b58f2c6e54dfbf52eaee72ebc9b70188fd1716d47f626874abadcee45512", size = 12687742 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0d/d6/f7d66e36c4cfe53b7d27d8b543c9517da0c6a6db0af129a519b55b26654f/botocore-1.35.6-py3-none-any.whl", hash = "sha256:8378c6cfef2dee15eb7b3ebbb55ba9c1de959f231292039b81eb35b72c50ad59", size = 12475696 },
+    { url = "https://files.pythonhosted.org/packages/d2/eb/ebe5bc70c3ab95f973410374c6a7c29e47d780f22185c21f13f2dad2e660/botocore-1.35.7-py3-none-any.whl", hash = "sha256:324e58518a92f2946bc6653e5e1272bc88d4b6313413f938bdc51cb90d34cbba", size = 12478086 },
 ]
 
 [[package]]
@@ -682,7 +682,7 @@ wheels = [
 
 [[package]]
 name = "google-api-core"
-version = "2.19.1"
+version = "2.19.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "google-auth" },
@@ -691,9 +691,9 @@ dependencies = [
     { name = "protobuf" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c2/41/42a127bf163d9bf1f21540a3bf41c69b231b88707d8d753680b8878201a6/google-api-core-2.19.1.tar.gz", hash = "sha256:f4695f1e3650b316a795108a76a1c416e6afb036199d1c1f1f110916df479ffd", size = 148925 }
+sdist = { url = "https://files.pythonhosted.org/packages/78/14/99c2514b3ccc5aad1e0776f0ae8295c9f7153aead4f41d07dd126cecdc14/google_api_core-2.19.2.tar.gz", hash = "sha256:ca07de7e8aa1c98a8bfca9321890ad2340ef7f2eb136e558cee68f24b94b0a8f", size = 149057 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/44/99/daa3541e8ecd7d8b7907b714ba92126097a976b5b3dbabdb5febdcf08554/google_api_core-2.19.1-py3-none-any.whl", hash = "sha256:f12a9b8309b5e21d92483bbd47ce2c445861ec7d269ef6784ecc0ea8c1fa6125", size = 139384 },
+    { url = "https://files.pythonhosted.org/packages/79/53/2e340a6ed897fa2bdd6c1bf166b98c047fbb648463dfd2b209ca7d501984/google_api_core-2.19.2-py3-none-any.whl", hash = "sha256:53ec0258f2837dd53bbd3d3df50f5359281b3cc13f800c941dd15a9b5a415af4", size = 139427 },
 ]
 
 [package.optional-dependencies]
@@ -765,14 +765,14 @@ wheels = [
 
 [[package]]
 name = "googleapis-common-protos"
-version = "1.64.0"
+version = "1.65.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "protobuf" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4f/33/48436e504d81629c7e9d2731c8dcc1e0736220175eb8eef0d1b237a7e4fc/googleapis_common_protos-1.64.0.tar.gz", hash = "sha256:7d77ca6b7c0c38eb6b1bab3b4c9973acf57ce4f2a6d3a4136acba10bcbfb3025", size = 113350 }
+sdist = { url = "https://files.pythonhosted.org/packages/53/3b/1599ceafa875ffb951480c8c74f4b77646a6b80e80970698f2aa93c216ce/googleapis_common_protos-1.65.0.tar.gz", hash = "sha256:334a29d07cddc3aa01dee4988f9afd9b2916ee2ff49d6b757155dc0d197852c0", size = 113657 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b7/14/3f8b5670e7e082a3735dc9a6411b4ba37af7e6662441ee66782906265632/googleapis_common_protos-1.64.0-py2.py3-none-any.whl", hash = "sha256:d1bfc569f70ed2e96ccf06ead265c2cf42b5abfc817cda392e3835f3b67b5c59", size = 220604 },
+    { url = "https://files.pythonhosted.org/packages/ec/08/49bfe7cf737952cc1a9c43e80cc258ed45dad7f183c5b8276fc94cb3862d/googleapis_common_protos-1.65.0-py2.py3-none-any.whl", hash = "sha256:2972e6c496f435b92590fd54045060867f3fe9be2c82ab148fc8885035479a63", size = 220890 },
 ]
 
 [[package]]
@@ -803,7 +803,7 @@ wheels = [
 
 [[package]]
 name = "groq"
-version = "0.9.0"
+version = "0.10.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -813,9 +813,9 @@ dependencies = [
     { name = "sniffio" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/48/c8/5ea4aa6b329fd01795acdf4cb0c78d92860253d108eddfc008fccbe56642/groq-0.9.0.tar.gz", hash = "sha256:130ed5e35d3acfaab46b9e7a078eeaebf91052f4a9d71f86f87fb319b5fec332", size = 68728 }
+sdist = { url = "https://files.pythonhosted.org/packages/bc/43/cb2227e4176b52d94b5d9eed28545aab3e1813edbf2b317edb2c3ae78d46/groq-0.10.0.tar.gz", hash = "sha256:7653aad4c0b363928970fc55626a83624f5eab6503ee74fb25f255e24e05fcf8", size = 104645 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/59/7c/81b1302925c2452d540c7d7784b316017b69e1f3f19c2996bcb09360437b/groq-0.9.0-py3-none-any.whl", hash = "sha256:d0e46f4ad645504672bb09c8100af3ced3a7db0d5119dc13e4aca535fc455874", size = 103457 },
+    { url = "https://files.pythonhosted.org/packages/90/82/af7da0939c5e63357e3a8089edb86c879659207f47e70cbd36da40c6a7cc/groq-0.10.0-py3-none-any.whl", hash = "sha256:6939e3c62b005e7aa9cabca6ea2eaf96cea595e2f7d4658df6c0c7c8ccf59410", size = 106282 },
 ]
 
 [[package]]
@@ -894,7 +894,7 @@ wheels = [
 
 [[package]]
 name = "httpx"
-version = "0.27.0"
+version = "0.27.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -903,9 +903,9 @@ dependencies = [
     { name = "idna" },
     { name = "sniffio" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5c/2d/3da5bdf4408b8b2800061c339f240c1802f2e82d55e50bd39c5a881f47f0/httpx-0.27.0.tar.gz", hash = "sha256:a0cb88a46f32dc874e04ee956e4c2764aba2aa228f650b06788ba6bda2962ab5", size = 126413 }
+sdist = { url = "https://files.pythonhosted.org/packages/78/82/08f8c936781f67d9e6b9eeb8a0c8b4e406136ea4c3d1f89a5db71d42e0e6/httpx-0.27.2.tar.gz", hash = "sha256:f7c2be1d2f3c3c3160d441802406b206c2b76f5947b11115e6df10c6c65e66c2", size = 144189 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/41/7b/ddacf6dcebb42466abd03f368782142baa82e08fc0c1f8eaa05b4bae87d5/httpx-0.27.0-py3-none-any.whl", hash = "sha256:71d5465162c13681bff01ad59b2cc68dd838ea1f10e51574bac27103f00c91a5", size = 75590 },
+    { url = "https://files.pythonhosted.org/packages/56/95/9377bcb415797e44274b51d46e3249eba641711cf3348050f76ee7b15ffc/httpx-0.27.2-py3-none-any.whl", hash = "sha256:7bb2708e112d8fdd7829cd4243970f0c223274051cb35ee80c03301ee29a3df0", size = 76395 },
 ]
 
 [[package]]
@@ -1309,7 +1309,7 @@ wheels = [
 
 [[package]]
 name = "langsmith"
-version = "0.1.104"
+version = "0.1.106"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
@@ -1317,9 +1317,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/78/32/2348ca035ff7f76127ef7306644d9c2d35aa4e72a8aa2adea3a812001f9c/langsmith-0.1.104.tar.gz", hash = "sha256:7892dfe452d143fba573d7eb28dbff3202d2f2daacab8c7276ffe4a850179d4d", size = 138513 }
+sdist = { url = "https://files.pythonhosted.org/packages/4c/53/388cbdb468d767ff816f2a6270f015f036cd9b8e991f040461275f9af416/langsmith-0.1.106.tar.gz", hash = "sha256:64a890a05640d64692f5515ebb444b0457332a9cf9e7605c4651de6737a7d3a0", size = 139984 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/83/52/a2849eaf6a829b2cc54b543b6f362d39c69f9f3880fc642256a26e5120bf/langsmith-0.1.104-py3-none-any.whl", hash = "sha256:049cd312952a0db9f5edeed3b9a8616e66ef86e5490c835c8bb054569203b0d0", size = 149124 },
+    { url = "https://files.pythonhosted.org/packages/ad/4e/8c33e0f1ed7688afea6e0e5ed2eb05265776d4dec647d046e9df8fb205ab/langsmith-0.1.106-py3-none-any.whl", hash = "sha256:a418161c98de72ee2c6eea6667c6217814b67db4b9a3a024788013384216ff35", size = 150604 },
 ]
 
 [[package]]
@@ -1658,14 +1658,14 @@ wheels = [
 
 [[package]]
 name = "ollama"
-version = "0.3.1"
+version = "0.3.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d7/4e/fc7ad9232c251b4885b1bf2e0f9ce35882e0f167a6ce7d3d15473dc07e7d/ollama-0.3.1.tar.gz", hash = "sha256:032572fb494a4fba200c65013fe937a65382c846b5f358d9e8918ecbc9ac44b5", size = 10033 }
+sdist = { url = "https://files.pythonhosted.org/packages/58/25/02f994497d39a9e5c89b4ae1111f109bd88c6139c13c16cb3c74ca529fd1/ollama-0.3.2.tar.gz", hash = "sha256:7deb3287cdefa1c39cc046163096f8597b83f59ca31a1f8ae78e71eccb7af95f", size = 10394 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2f/25/c3442864bd77621809a208a483b0857f8d6444b7a67906b58b9dcddd1574/ollama-0.3.1-py3-none-any.whl", hash = "sha256:db50034c73d6350349bdfba19c3f0d54a3cea73eb97b35f9d7419b2fc7206454", size = 10028 },
+    { url = "https://files.pythonhosted.org/packages/2b/2f/1c24d325622e05ea0d1ef0d44c362b0303e5b74ad8415f4ba15074c5ea2b/ollama-0.3.2-py3-none-any.whl", hash = "sha256:ed2a6f752bd91c49b477d84a259c5657785d7777689d4a27ffe0a4d5b5dd3cae", size = 10263 },
 ]
 
 [[package]]

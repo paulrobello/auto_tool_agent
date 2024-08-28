@@ -5,7 +5,7 @@ from langchain_core.tools import tool
 @tool
 def list_s3_buckets_and_storage_class(region: str = "None"):
     """
-    List all S3 buckets and their storage classes in a specific region.
+    List all S3 buckets and their storage classes optionally filtering by region.
 
     Args:
         region (str): Region to filter buckets by. Use "None" to list all buckets.
@@ -32,7 +32,7 @@ def list_s3_buckets_and_storage_class(region: str = "None"):
                 bucket_location = "us-east-1"
 
             # Filter by region if specified
-            if region == "None" or region == bucket_location:
+            if region in ["None", None, bucket_location]:
                 # Get the storage class for the bucket (by checking a sample object's storage class, if exists)
                 storage_class = "Standard"  # Default assumption
                 try:
@@ -40,8 +40,6 @@ def list_s3_buckets_and_storage_class(region: str = "None"):
                     if "Contents" in objects and objects["Contents"]:
                         first_object = objects["Contents"][0]
                         storage_class = first_object.get("StorageClass", "Standard")
-                except s3.exceptions.ClientError as e:
-                    storage_class = f"Error retrieving storage class: {str(e)}"
                 except Exception as e:
                     storage_class = f"Error retrieving storage class: {str(e)}"
 

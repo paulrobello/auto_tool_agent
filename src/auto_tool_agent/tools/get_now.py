@@ -1,3 +1,5 @@
+"""Get current date and time in UTC tool"""
+
 from datetime import datetime, timezone
 
 from langchain_core.tools import tool

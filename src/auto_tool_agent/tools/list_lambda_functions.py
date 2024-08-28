@@ -1,10 +1,9 @@
 from boto3 import client
-from botocore.exceptions import BotoCoreError, ClientError
 from langchain_core.tools import tool
 
 
 @tool
-def list_lambda_functions(region):
+def list_lambda_functions(region: str) -> str | list[dict]:
     """
     List all AWS Lambda functions in a region.
 
@@ -12,7 +11,7 @@ def list_lambda_functions(region):
         region (str): The AWS region to list Lambda functions from.
 
     Returns:
-        list: A list of Lambda function names.
+        list: A list of Lambda function names or an error message.
     """
     try:
         lambda_client = client("lambda", region_name=region)
