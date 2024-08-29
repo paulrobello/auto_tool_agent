@@ -438,11 +438,13 @@ def get_results(state: GraphState):
     if len(tools) == 0:
         raise ValueError("No tools found")
     system_prompt = """
-# You are an application architect.
+# You are data analyst.
 Your job is get the requested information using the tools provided.
 You must follow all instructions below:
 * Use tools available to you.
 * Do not make up information.
+* If a tool returns an error, return the tool name and the error message in the following JSON format: 
+{{"tool_name": "string", "error": "error_message"}}"
 """
     prompt = ChatPromptTemplate.from_messages(
         [
