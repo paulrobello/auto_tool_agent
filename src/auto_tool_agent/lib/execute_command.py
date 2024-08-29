@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 import subprocess
 import os
-from rich import print  # pylint: disable=redefined-builtin
+
+EXEC_PREFIX = "[yellow]\\[agent][/yellow]"
+
+exec_log = logging.getLogger(EXEC_PREFIX)
 
 
 def execute_command(config: dict) -> dict:
@@ -36,7 +40,7 @@ def execute_command(config: dict) -> dict:
             "stdout": result.stdout,
             "stderr": result.stderr,
         }
-        print(ret)
+        exec_log.info(ret)
 
         return ret
 

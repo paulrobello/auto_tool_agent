@@ -8,7 +8,6 @@ import logging
 import os
 import time
 
-from argparse import Namespace
 from langchain_core.tools import BaseTool
 from watchdog.events import FileSystemEventHandler
 
@@ -21,11 +20,9 @@ ml_log = logging.getLogger(MODULE_LOADER_PREFIX)
 class ModuleLoader(FileSystemEventHandler):
     """Load modules on startup and when they are created / modified."""
 
-    def __init__(self, folder_path: str, opts: Namespace) -> None:
+    def __init__(self, folder_path: str) -> None:
         """Initialize the event handler."""
         super().__init__()
-        self.opts = opts
-        self.load_existing_modules(os.path.join(opts.data_dir, "tools"))
         self.load_existing_modules(
             os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools")
         )
@@ -89,8 +86,7 @@ class ModuleLoader(FileSystemEventHandler):
                     return
                 tool_data.add_good_tool(module_name, new_tools[0])
             else:
-                if self.opts.verbose > 1:
-                    ml_log.info("Ignoring non-Python file: %s", module_path)
+                ml_log.info("Ignoring non-Python file: %s", module_path)
         except Exception as e:  # pylint: disable=broad-except
             tool_data.add_bad_tool(module_name)
             ml_log.exception(
@@ -100,7 +96,7 @@ class ModuleLoader(FileSystemEventHandler):
     def load_existing_modules(self, folder_path: str) -> None:
         """Load any existing modules in the folder."""
         if not os.path.exists(folder_path):
-            ml_log.info("Folder does not exist: %s", folder_path)
+            ml_log.warning("Folder does not exist: %s", folder_path)
             return
         for filename in os.listdir(folder_path):
             module_path = os.path.join(folder_path, filename)
@@ -120,8 +116,7 @@ class ModuleLoader(FileSystemEventHandler):
         for name in dir(module):
             func = getattr(module, name)
             if isinstance(func, BaseTool):
-                if self.opts.verbose > 1:
-                    ml_log.info("found tool: %s", name)
+                ml_log.info("found tool: %s", name)
                 tools.append(func)
                 tool_data.last_tool_load = time.time()
         return tools

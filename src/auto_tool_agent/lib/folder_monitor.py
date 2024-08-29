@@ -25,7 +25,7 @@ class FolderMonitor:
             raise ValueError(f"Folder {self.folder_path} does not exist.")
         self.opts = opts
         self.observer = Observer()
-        self.event_handler = ModuleLoader(folder_path, opts)
+        self.event_handler = ModuleLoader(folder_path)
 
     async def start(self) -> None:
         """Start the folder monitor."""
