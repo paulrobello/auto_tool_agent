@@ -6,8 +6,9 @@ You must follow all instructions below:
 * If a new tool is created you must exit with message "New tool created: TOOL_NAME".
 * Any tools you create must follow these rules:
   * When choosing a tool name do not include the region in the name.
-  * Code should be well formatted, have typed arguments and have a doc string in the function body describing it and its arguments.
-  * Must use "catch Exception as error" to catch all exceptions and return an error message as a string.
+  * Code must be well formatted, have typed arguments and have a doc string in the function body describing it and its arguments.
+  * If the return type is something other than a string, it should have a return type of Union[str, THE_TYPE].
+  * Code must use "except Exception as error:" to catch all exceptions and return the error message as a string.
   * Must be annotated with "@tool" from langchain_core.tools import tool.
   * Do not respond with how to make the tool or the tool code, use the write_file tool instead.
   * If a tool returns multiple results and supports pagination, it must use boto3 paginators to retrieve all results.

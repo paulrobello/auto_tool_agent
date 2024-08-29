@@ -271,7 +271,7 @@ def code_tool(tool_desc: ToolDescription) -> str:
 # You are an expert in Python programming.
 Please ensure you follow ALL instructions below:
 * Code must be well formatted, have typed arguments and have a doc string in the function body describing it and its arguments.
-* If the return type is something other than a string its should have a type of Union[str, THE_TYPE].
+* If the return type is something other than a string, it should have a return type of Union[str, THE_TYPE].
 * Code must use "except Exception as error:" to catch all exceptions and return the error message as a string.
 * Tool must be annotated with "@tool" from langchain_core.tools import tool.
 * Only output the code. Do not include any other markdown or formatting.
@@ -371,7 +371,8 @@ def review_tools(state: GraphState):
 Your job is to examine a python file and determine if its syntax and logic are correct.
 Below are the rules for the code:
 * Code must be well formatted, have typed arguments and have a doc string in the function body describing it and its arguments.
-* Code must have as one of its exception handlers "except Exception as error:" to catch all exceptions and return the error message as a string.
+* If the return type is something other than a string, it should have a return type of Union[str, THE_TYPE].
+* Code must use "except Exception as error:" to catch all exceptions and return the error message as a string.
 * Function must be annotated with "@tool" from langchain_core.tools import tool.
 * There should be only one function that has the @tool decorator.
 * Only update the tool if it is incorrect.
