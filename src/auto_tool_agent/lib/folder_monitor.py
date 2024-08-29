@@ -9,7 +9,7 @@ import asyncio
 from argparse import Namespace
 from watchdog.observers import Observer
 
-from auto_tool_agent.module_loader import ModuleLoader
+from auto_tool_agent.lib.module_loader import ModuleLoader
 
 FOLDER_MONITOR_PREFIX = "[cyan]\\[folder_monitor][/cyan]"
 fm_log = logging.getLogger(FOLDER_MONITOR_PREFIX)

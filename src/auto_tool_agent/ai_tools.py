@@ -13,7 +13,8 @@ import simplejson as json
 
 from langchain_core.tools import tool
 
-from auto_tool_agent.session import session
+import auto_tool_agent.opts
+from auto_tool_agent.lib.session import session
 from auto_tool_agent.sandboxing import (
     create_session_folder,
     read_env_file,
@@ -40,7 +41,7 @@ def write_file(data: str, filename: str, append: bool) -> Union[str, Literal[Fal
     filename = os.path.basename(filename)
     mode = "a" if append else "w"
     with open(
-        os.path.join(session.opts.sandbox_dir, session.id, filename),
+        os.path.join(auto_tool_agent.opts.opts.sandbox_dir, session.id, filename),
         mode,
         encoding="utf-8",
     ) as f:
@@ -64,7 +65,9 @@ def read_file(filename: str) -> Union[dict[str, str], Literal[False]]:
             return False
 
         filename = os.path.basename(filename)
-        file_path = os.path.join(session.opts.sandbox_dir, session.id, filename)
+        file_path = os.path.join(
+            auto_tool_agent.opts.opts.sandbox_dir, session.id, filename
+        )
         if not os.path.exists(file_path):
             return False
         with open(file_path, "r", encoding="utf-8") as f:
@@ -91,7 +94,9 @@ def list_files(
     try:
         if not create_session_folder():
             return False
-        files = os.listdir(os.path.join(session.opts.sandbox_dir, session.id))
+        files = os.listdir(
+            os.path.join(auto_tool_agent.opts.opts.sandbox_dir, session.id)
+        )
         return files
     except Exception as e:  # pylint: disable=broad-except
         print(f"Error: {e}")
@@ -117,8 +122,12 @@ def rename_file(old_filename: str, new_filename: str) -> Union[str, Literal[Fals
 
         old_filename = os.path.basename(old_filename)
         new_filename = os.path.basename(new_filename)
-        file_path = os.path.join(session.opts.sandbox_dir, session.id, old_filename)
-        new_file_path = os.path.join(session.opts.sandbox_dir, session.id, new_filename)
+        file_path = os.path.join(
+            auto_tool_agent.opts.opts.sandbox_dir, session.id, old_filename
+        )
+        new_file_path = os.path.join(
+            auto_tool_agent.opts.opts.sandbox_dir, session.id, new_filename
+        )
         if not os.path.exists(file_path):
             return False
         if os.path.exists(new_file_path):
@@ -302,7 +311,7 @@ def execute_script(
                 docker.types.Mount(
                     target="/workspace",
                     source=os.path.abspath(
-                        os.path.join(session.opts.sandbox_dir, session.id)
+                        os.path.join(auto_tool_agent.opts.opts.sandbox_dir, session.id)
                     ),
                     type="bind",
                 )
@@ -318,7 +327,7 @@ def execute_script(
             pip_output = output.decode("utf-8")
             with open(
                 os.path.join(
-                    session.opts.sandbox_dir,
+                    auto_tool_agent.opts.opts.sandbox_dir,
                     session.id,
                     f"{script_filename}.pip-output.txt",
                 ),
@@ -340,7 +349,7 @@ def execute_script(
         run_output: str = output.decode("utf-8")
         with open(
             os.path.join(
-                session.opts.sandbox_dir,
+                auto_tool_agent.opts.opts.sandbox_dir,
                 session.id,
                 f"{script_filename}.run-output.txt",
             ),

@@ -11,9 +11,9 @@ from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_core.prompts import MessagesPlaceholder, ChatPromptTemplate
 from langchain_core.tools import BaseTool
 
-from auto_tool_agent.folder_monitor import FolderMonitor
+from auto_tool_agent.lib.folder_monitor import FolderMonitor
 from auto_tool_agent.tool_data import tool_data
-from auto_tool_agent.session import session
+from auto_tool_agent.lib.session import session
 from auto_tool_agent.ai_tools import (
     list_files,
     read_file,

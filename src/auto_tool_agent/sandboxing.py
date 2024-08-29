@@ -5,7 +5,8 @@ from __future__ import annotations
 import os
 import shutil
 
-from auto_tool_agent.session import session
+import auto_tool_agent.opts
+from auto_tool_agent.lib.session import session
 
 
 # sandbox_base = os.path.join(os.path.abspath(os.path.dirname(__file__)), "sandbox")
@@ -15,7 +16,7 @@ def clear_output_folder() -> None:
     """
     Clear the output folder
     """
-    output_dir = os.path.join(session.opts.sandbox_dir, session.id)
+    output_dir = os.path.join(auto_tool_agent.opts.opts.sandbox_dir, session.id)
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
         os.makedirs(output_dir)
@@ -28,7 +29,7 @@ def create_session_folder() -> bool:
     Returns:
         bool: True if successful, False otherwise
     """
-    folder_name = os.path.join(session.opts.sandbox_dir, session.id)
+    folder_name = os.path.join(auto_tool_agent.opts.opts.sandbox_dir, session.id)
     os.makedirs(folder_name, exist_ok=True)
     return True
 

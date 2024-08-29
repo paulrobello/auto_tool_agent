@@ -66,6 +66,7 @@ dependencies = [
     "psycopg2-binary>=2.9.9",
     "docker>=7.1.0",
     "watchdog>=4.0.2",
+    "tomlkit>=0.13.2",
 ]
 
 packages = [
