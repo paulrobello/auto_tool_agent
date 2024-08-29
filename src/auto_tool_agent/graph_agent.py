@@ -6,7 +6,7 @@ import ast
 import logging
 import os
 import shutil
-from typing import Literal, Any
+from typing import Literal, Any, cast
 import simplejson as json
 
 from langchain.agents import create_tool_calling_agent, AgentExecutor
@@ -17,7 +17,7 @@ from rich import print  # pylint: disable=redefined-builtin
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 import tomlkit
-from tomlkit import parse as parse_toml, dumps as dump_toml
+from tomlkit.items import Table, Array
 
 from auto_tool_agent.graph_state import (
     GraphState,
@@ -92,25 +92,25 @@ def sync_venv(state: GraphState):
 
         # Update project
         with open(project_config, "rt", encoding="utf-8") as f:
-            project_toml = parse_toml(f.read())
-        project = project_toml["project"]
+            project_toml = tomlkit.parse(f.read())
+        project = cast(Table, project_toml["project"])
         project["description"] = "AI Auto Tool Agent"
 
         # Add package section
-        project["packages"] = tomlkit.array()
+        project["packages"] = cast(Array, tomlkit.array())
         tab = tomlkit.inline_table()
         tab.add("include", "src/")
-        project["packages"].append(tab)
+        project["packages"].insert(0, tab)  # pyright: ignore
         tab = tomlkit.inline_table()
         tab.add("include", "src/**/*.py")
-        project["packages"].append(tab)
+        project["packages"].insert(1, tab)  # pyright: ignore
 
         with open(project_config, "wt", encoding="utf-8") as f:
-            f.write(dump_toml(project_toml))
+            f.write(tomlkit.dumps(project_toml))
 
     with open(project_config, "rt", encoding="utf-8") as f:
-        project_toml = parse_toml(f.read())
-    project = project_toml["project"]
+        project_toml = tomlkit.parse(f.read())
+    project = cast(Table, project_toml["project"])
     existing_deps = project.get("dependencies") or []
     existing_deps = [
         dep.split(">")[0].split("<")[0].split("=")[0].strip().split("^")[0].strip()
@@ -220,6 +220,7 @@ You must follow all instructions below:
     """
     model: BaseChatModel = llm_config.build_chat_model()
     structure_model = model.with_structured_output(ToolNeededResponse)
+
     result: ToolNeededResponse = structure_model.with_config(
         {"run_name": "Project Planner"}
     ).invoke(
@@ -233,7 +234,7 @@ You must follow all instructions below:
 """,
             ),
         ]
-    )
+    )  # pyright: ignore
     return {
         "call_stack": ["plan_project"],
         "needed_tools": result.needed_tools,
@@ -270,7 +271,8 @@ def code_tool(tool_desc: ToolDescription) -> str:
 # You are an expert in Python programming.
 Please ensure you follow ALL instructions below:
 * Code must be well formatted, have typed arguments and have a doc string in the function body describing it and its arguments.
-* Code must use "catch Exception as error:" to catch all exceptions and return the error message as a string.
+* If the return type is something other than a string its should have a type of Union[str, THE_TYPE].
+* Code must use "except Exception as error:" to catch all exceptions and return the error message as a string.
 * Tool must be annotated with "@tool" from langchain_core.tools import tool.
 * Only output the code. Do not include any other markdown or formatting.
 * There should be only one function that has the @tool decorator.
@@ -312,7 +314,7 @@ Tool_Description: {tool_desc.description}
 """,
             ),
         ]
-    )
+    )  # pyright: ignore
     deps_result.dependencies = [
         dep.replace("_", "-") for dep in deps_result.dependencies
     ]
@@ -360,20 +362,24 @@ def review_tools(state: GraphState):
     llm_config = LlmConfig(
         provider=provider,
         model_name=opts.model_name or provider_default_models[provider],
-        temperature=0.5,
+        temperature=0.25,
     )
     agent_log.info(llm_config)
 
     system_prompt = """
-# You are a backend python code qa expert.
-Your job is to examine a function and determine if its syntax and logic are correct.
+# You are a Python code review expert.
+Your job is to examine a python file and determine if its syntax and logic are correct.
+Below are the rules for the code:
 * Code must be well formatted, have typed arguments and have a doc string in the function body describing it and its arguments.
-* Code must use "catch Exception as error:" to catch all exceptions and return the error message as a string.
+* Code must have as one of its exception handlers "except Exception as error:" to catch all exceptions and return the error message as a string.
 * Function must be annotated with "@tool" from langchain_core.tools import tool.
-* Only output the code. Do not include any other markdown or formatting.
 * There should be only one function that has the @tool decorator.
-* Do not output markdown tags such as "```" or "```python"
-* If you update a tool ensure that it implements the functionality described in the doc string.
+* Only update the tool if it is incorrect.
+* If you update a tool ensure you follow these instructions:
+    * Write it in Python following the above instructions
+    * Ensure that it implements the functionality described in the doc string.
+    * Only output the code. Do not include any other markdown or formatting.
+    * Do not output markdown tags such as "```" or "```python"
 """
     model: BaseChatModel = llm_config.build_chat_model()
     structure_model = model.with_structured_output(CodeReviewResponse)
@@ -388,13 +394,12 @@ Your job is to examine a function and determine if its syntax and logic are corr
                     ("system", system_prompt),
                     (
                         "user",
-                        f"""```python
+                        f"""
 {load_function_code(state, tool_def.name)}
-```
 """,
                     ),
                 ]
-            )
+            )  # pyright: ignore
             agent_log.info("Review result: %s", result)
             if result.tool_updated and result.updated_tool_code:
                 any_updated = True
@@ -467,7 +472,7 @@ You must follow all instructions below:
     }
 
 
-def ask_human(state: GraphState):
+def ask_human(_: GraphState):
     """Ask human."""
     return {
         "call_stack": ["ask_human"],
@@ -479,6 +484,8 @@ def save_state(state: GraphState):
     """Save the state."""
     with open("state.json", "wt", encoding="utf-8") as f:
         json.dump(state, f, indent=2, default=str)
+    with open("final_result.md", "wt", encoding="utf-8") as f:
+        f.write(state["final_result"])
     return {"call_stack": ["save_state"]}
 
 

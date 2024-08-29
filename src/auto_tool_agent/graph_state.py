@@ -36,6 +36,9 @@ class CodeReviewResponse(BaseModel):
     tool_updated: bool = Field(
         description="Set to True if the tool is updated and False if it is not."
     )
+    tool_issues: str = Field(
+        description="Describe the issues that required the tool to be updated."
+    )
     updated_tool_code: str = Field(description="Updated tool code.")
 
 
