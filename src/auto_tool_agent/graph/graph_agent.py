@@ -98,7 +98,11 @@ You must follow all instructions below:
         }
     )
     output = ret["output"]
-    final_result_response = FinalResultResponse.model_validate_json(output)
+    agent_log.info("output: ============\n%s\n===========", output)
+    if isinstance(output, str):
+        final_result_response = FinalResultResponse.model_validate_json(output)
+    else:
+        final_result_response = FinalResultResponse.model_validate(output)
     return {
         "call_stack": ["get_results"],
         "final_result": final_result_response,

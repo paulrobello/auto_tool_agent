@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TypedDict, Annotated, List, Optional
+from typing import TypedDict, Annotated, List, Optional, Any
 from pydantic import BaseModel, Field
 
 
@@ -69,7 +69,7 @@ class FinalResultErrorResponse(BaseModel):
 class FinalResultResponse(BaseModel):
     """Final result response."""
 
-    final_result: str = Field(description="Final result of the tool.")
+    final_result: Any = Field(description="Final result of the tool.")
     error: Optional[FinalResultErrorResponse] = Field(
         default=None,
         description="Error message if the tool failed to execute.",

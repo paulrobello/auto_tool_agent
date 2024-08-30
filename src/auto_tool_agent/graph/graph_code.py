@@ -24,6 +24,7 @@ CODE_RULES = """
 * Code must use "except Exception as error:" to catch all exceptions and return the error message as a string.
 * Tool must be annotated with "@tool" from langchain_core.tools import tool.
 * There should be only one function that has the @tool decorator.
+* Functions should be reusable by adding parameters to enable filtering or limiting the number of results.
 * Do not output markdown tags such as "```" or "```python".
 """
 
