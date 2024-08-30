@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 
 import simplejson as json
 from langchain_core.language_models import BaseChatModel
@@ -13,6 +14,7 @@ from auto_tool_agent.lib.llm_providers import (
     get_llm_provider_from_str,
     provider_default_models,
 )
+from auto_tool_agent.lib.module_loader import ModuleLoader
 from auto_tool_agent.opts import opts, format_to_extension
 
 AGENT_PREFIX = "[green]\\[agent][/green]"
@@ -48,3 +50,9 @@ def save_state(state: GraphState):
             ) as f:
                 f.write(state["final_result"].final_result)
     return {"call_stack": ["save_state"]}
+
+
+def load_existing_tools(state: GraphState):
+    """Load existing tools."""
+    ModuleLoader(os.path.join(state["sandbox_dir"], "src", "sandbox"))
+    # print(tool_data)

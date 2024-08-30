@@ -8,15 +8,18 @@ from langchain_core.language_models import BaseChatModel
 from rich import print  # pylint: disable=redefined-builtin
 
 from auto_tool_agent.graph.graph_sandbox import sync_venv
-from auto_tool_agent.graph.graph_shared import agent_log, build_chat_model, save_state
+from auto_tool_agent.graph.graph_shared import (
+    agent_log,
+    build_chat_model,
+    save_state,
+    load_existing_tools,
+)
 from auto_tool_agent.graph.graph_state import (
     GraphState,
     ToolDescription,
     DependenciesNeededResponse,
     CodeReviewResponse,
 )
-from auto_tool_agent.lib.module_loader import ModuleLoader
-from auto_tool_agent.tool_data import tool_data
 
 CODE_RULES = """
 * Code must be well formatted, have typed arguments and have a doc string in the function body describing it and its arguments.
@@ -25,14 +28,9 @@ CODE_RULES = """
 * Tool must be annotated with "@tool" from langchain_core.tools import tool.
 * There should be only one function that has the @tool decorator.
 * Functions should be reusable by adding parameters to enable filtering or limiting the number of results.
+* Result limit parameters should default to None meaning no limit.
 * Do not output markdown tags such as "```" or "```python".
 """
-
-
-def load_existing_tools(state: GraphState):
-    """Load existing tools."""
-    ModuleLoader(os.path.join(state["sandbox_dir"], "src", "sandbox"))
-    print(tool_data)
 
 
 def code_tool(tool_desc: ToolDescription) -> str:
@@ -152,7 +150,7 @@ Below are the rules for the code:
 
 
 def build_deps_list(state: GraphState) -> list[str]:
-    """Build list of all dependencies."""
+    """Build list of all 3rd party package dependencies."""
     needed_tools = state["needed_tools"]
     current_deps = set(state["dependencies"])
     for tool_def in needed_tools:

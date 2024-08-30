@@ -15,7 +15,6 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 
 from auto_tool_agent.graph.graph_code import (
-    load_existing_tools,
     review_tools,
     sync_deps_if_needed,
     build_tool,
@@ -23,7 +22,12 @@ from auto_tool_agent.graph.graph_code import (
 from auto_tool_agent.graph.graph_output import format_output
 from auto_tool_agent.graph.graph_planner import plan_project
 from auto_tool_agent.graph.graph_sandbox import setup_sandbox, sync_venv
-from auto_tool_agent.graph.graph_shared import build_chat_model, agent_log, save_state
+from auto_tool_agent.graph.graph_shared import (
+    build_chat_model,
+    agent_log,
+    save_state,
+    load_existing_tools,
+)
 from auto_tool_agent.graph.graph_state import (
     GraphState,
     FinalResultResponse,
@@ -33,7 +37,7 @@ from auto_tool_agent.opts import opts
 from auto_tool_agent.tool_data import tool_data
 
 
-def is_tool_needed(state: GraphState) -> Literal["build_tool", "get_results"]:
+def is_tool_needed(state: GraphState) -> Literal["build_tool", "get_results_pre_check"]:
     """Check if a tool is needed."""
     # return "save_state"
     needed_tools = state["needed_tools"]
@@ -43,6 +47,21 @@ def is_tool_needed(state: GraphState) -> Literal["build_tool", "get_results"]:
 
     if sync_deps_if_needed(state):
         agent_log.info("Updated dependencies: %s", state["dependencies"])
+
+    return "get_results_pre_check"
+
+
+def get_results_pre_check(_: GraphState):
+    """Check if a tool is needed."""
+    return {"call_stack": ["get_results_pre_check"]}
+
+
+def has_needed_tools(state: GraphState) -> Literal["plan_project", "get_results"]:
+    """Check if a tool is needed."""
+    needed_tools = state["needed_tools"]
+    for tool_def in needed_tools:
+        if tool_def.name not in tool_data.ai_tools:
+            return "plan_project"
 
     return "get_results"
 
@@ -125,6 +144,7 @@ workflow.add_node("sync_venv", sync_venv)
 workflow.add_node("plan_project", plan_project)
 workflow.add_node("build_tool", build_tool)
 workflow.add_node("review_tools", review_tools)
+workflow.add_node("get_results_pre_check", get_results_pre_check)
 workflow.add_node("get_results", get_results)
 workflow.add_node("format_output", format_output)
 workflow.add_node("save_state", save_state)
@@ -134,7 +154,8 @@ workflow.add_edge("setup_sandbox", "sync_venv")
 workflow.add_edge("sync_venv", "plan_project")
 workflow.add_conditional_edges("plan_project", is_tool_needed)
 workflow.add_edge("build_tool", "review_tools")
-workflow.add_edge("review_tools", "get_results")
+workflow.add_edge("review_tools", "get_results_pre_check")
+workflow.add_conditional_edges("get_results_pre_check", has_needed_tools)
 workflow.add_edge("get_results", "format_output")
 workflow.add_edge("format_output", "save_state")
 workflow.add_edge("save_state", END)
@@ -161,33 +182,38 @@ with open("graph.mermaid", "wt", encoding="utf-8") as mermaid_file:
 
 def run_graph():
     """Run the graph."""
+    if opts.generate_graph:
+        return
     old_state: dict[str, Any] = {}
     if os.path.exists("state.json"):
         with open("state.json", "rt", encoding="utf-8") as state_file:
             old_state = json.load(state_file)
 
+    initial_state: GraphState = {
+        "clean_run": opts.clear_sandbox,
+        "sandbox_dir": opts.sandbox_dir,
+        "dependencies": old_state.get(
+            "dependencies",
+            [
+                "requests",
+                "rich",
+                "asyncio",
+                "langchain",
+                "langchain-core",
+                "pytest",
+                "moto[all]",
+            ],
+        ),
+        "user_request": opts.user_request,
+        "needed_tools": [],
+        "call_stack": [],
+        "final_result": None,
+        "user_feedback": "",
+    }
+
     # Use the Runnable
     final_state = app.invoke(
-        {
-            "clean_run": opts.clear_sandbox,
-            "sandbox_dir": opts.sandbox_dir,
-            "dependencies": old_state.get(
-                "dependencies",
-                [
-                    "requests",
-                    "rich",
-                    "asyncio",
-                    "langchain",
-                    "langchain-core",
-                    "pytest",
-                    "moto[all]",
-                ],
-            ),
-            "user_request": opts.user_request,
-            "needed_tools": [],
-            "final_result": None,
-            "user_feedback": "",
-        },
+        initial_state,
         config={"configurable": {"thread_id": 42}},
     )
     print(final_state)

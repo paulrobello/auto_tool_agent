@@ -9,7 +9,7 @@ from typing import cast
 import tomlkit
 from tomlkit.items import Table, Array
 
-from auto_tool_agent.graph.graph_shared import agent_log
+from auto_tool_agent.graph.graph_shared import agent_log, load_existing_tools
 from auto_tool_agent.graph.graph_state import GraphState
 from auto_tool_agent.lib.execute_command import execute_command
 
@@ -107,6 +107,8 @@ def sync_venv(state: GraphState):
             if result["exit_code"] != 0:
                 agent_log.error(result)
                 raise ValueError("Failed to remove dependencies from project config.")
+
+    load_existing_tools(state)
 
     return {
         "call_stack": ["sync_venv"],

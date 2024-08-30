@@ -56,7 +56,7 @@ def format_output(state: GraphState):
         [
             ("system", system_prompt),
             ("user", "Original User Request: " + state["user_request"]),
-            ("user", "Data: \n" + state["final_result"].final_result),
+            ("user", "Data: \n" + str(state["final_result"].final_result)),
         ]
     )  # pyright: ignore
 

@@ -135,6 +135,13 @@ def parse_args():
         help="Clear the sandbox directory before running.",
     )
 
+    parser.add_argument(
+        "--generate_graph",
+        dest="generate_graph",
+        action="store_true",
+        help="Generate only graph diagram and exit.",
+    )
+
     args = parser.parse_args()
 
     data_dir = os.path.expanduser(args.data_dir) or os.path.join(

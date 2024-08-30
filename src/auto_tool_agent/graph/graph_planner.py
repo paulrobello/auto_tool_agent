@@ -9,10 +9,11 @@ from langchain_core.language_models import BaseChatModel
 
 from auto_tool_agent.graph.graph_shared import build_chat_model
 from auto_tool_agent.graph.graph_state import GraphState, ToolNeededResponse
+from auto_tool_agent.tool_data import tool_data
 
 
-def get_available_tool_descriptions(state: GraphState):
-    """Get available tools."""
+def get_available_tool_descriptions_old(state: GraphState) -> str:
+    """Get available tool descriptions."""
     tools = []
     src_dir = os.path.join(state["sandbox_dir"], "src", "sandbox")
     for file in os.listdir(src_dir):
@@ -37,10 +38,20 @@ def get_available_tool_descriptions(state: GraphState):
     return result
 
 
+def get_available_tool_descriptions() -> str:
+    """Get available tool descriptions."""
+    result = ""
+    for name, tool in tool_data.ai_tools.items():
+        result += f"Tool_Name: {name}\n"
+        result += f"Description: {tool.description}\n\n"
+
+    return result
+
+
 def plan_project(state: GraphState):
     """Check if a tool is needed."""
 
-    available_tools = get_available_tool_descriptions(state)
+    available_tools = get_available_tool_descriptions()
     system_prompt = """
 # You are an application architect.
 Your job is to examine the users request and determine what tools will be needed.
@@ -71,7 +82,7 @@ You must follow all instructions below:
 """,
             ),
         ]
-    )  # pyright: ignore
+    )  # type: ignore
     return {
         "call_stack": ["plan_project"],
         "needed_tools": result.needed_tools,
