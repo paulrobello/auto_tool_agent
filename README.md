@@ -51,48 +51,47 @@ make app_help
 ```
 If using for AWS you must assume the role you want to use prior to running the agent.
 
-### Dev mode uses make
-Use ARG1, ARG2... env vars to pass arguments to the agent
+### Dev mode uses uv run
 ```bash
-ARG1="list all lambda functions in region us-east-1" make run
+uv run python -m auto_tool_agent "list all lambda functions in region us-east-1"
 ```
 
 ```bash
-ARG1="-f" ARG2="csv" ARG3="list all s3 buckets in region us-east-1" make run
+uv run python -m auto_tool_agent -f csv "list all s3 buckets in region us-east-1"
 ```
 
-### Normal run examples
+### Installed run examples
 
 Output CSV format to file data.csv using query of s3 buckets and their storage classes:
 ```bash
 auto_tool_agent --format csv --output data.csv "list all s3 buckets and their storage class"
 ```
 
-Output Markdown format to file data.md using query of top 3 hacker news articles:
+Output Markdown format to file data.md using query of top 5 hacker news articles:
 ```bash
-auto_tool_agent.exe -f markdown -o data.markdown -i 5 -s generic.md "fetch me the top 3 articles from hacker news"
+auto_tool_agent.exe -f markdown -o data.markdown -i 5 -s generic.md "fetch me the top 5 articles from hacker news"
 ```
 
 ## Output format examples
 You can specify any of the supported output formats enhance the system prompt for better output formatting.  
 ### Markdown
 ```bash
-ARG1='-f' ARG2='markdown' ARG3='-o' ARG4='data.md' ARG5='list all s3 buckets in region us-east-1. Use a Markdown table with columns bucket_name, region' make run
+uv run python -m auto_tool_agent -f markdown -o data.md 'list all s3 buckets in region us-east-1. Use a Markdown table with columns bucket_name, region'
 ```
 
 ### CSV
 ```bash
-ARG1='-f' ARG2='csv' ARG3='-o' ARG4='data.csv' ARG5='list all s3 buckets in region us-east-1. Use CSV with fields bucket_name, region' make run
+uv run python -m auto_tool_agent -f csv -o data.csv 'list all s3 buckets in region us-east-1. Use CSV with fields bucket_name, region'
 ```
 
 ### JSON
 ```bash
-ARG1='-f' ARG2='json' ARG3='-o' ARG4='data.json' ARG5='list all s3 buckets in region us-east-1. Use the following json schema [{"bucket_name": "string", "region": "string"}]' make run
+uv run python -m auto_tool_agent -f json -o data.json 'list all s3 buckets in region us-east-1. Use the following json schema [{"bucket_name": "string", "region": "string"}]' make run
 ```
 
 ### Text
 ```bash
-ARG1='-f' ARG2='text' ARG3='-o' ARG4='data.txt' ARG5='list all s3 buckets in region us-east-1.' make run
+uv run python -m auto_tool_agent -f text -o data.txt 'list all s3 buckets in region us-east-1.'
 ```
 ## Folders dev mode
 * REPO_ROOT/src/auto_tool_agent/sandbox - sandbox folder where the agent will write its tools
