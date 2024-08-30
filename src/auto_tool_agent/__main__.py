@@ -8,7 +8,7 @@ import auto_tool_agent.opts
 from auto_tool_agent.app_logging import logPath, logFormatter, fileHandler, log
 from auto_tool_agent.dotenv import load_dotenv
 
-from auto_tool_agent.graph_agent import run_graph
+from auto_tool_agent.graph.graph_agent import run_graph
 from auto_tool_agent.opts import opts
 
 from auto_tool_agent.tool_maker import tool_main, agent_main

@@ -1,11 +1,11 @@
-# AI agent that can create its own tools
+# AI agent that can create its own tools **LangGraph Edition**
 
 ## Overview
-The agent is currently setup to use a system prompt geared for AWS.
+This agent uses a multistep process to create its own tools and use them to answer questions.
 
 ## Prerequisites
 * gnu compatible Make
-* python 3.10+
+* python 3.11+
 * uv
 
 ## Installation
@@ -51,14 +51,13 @@ make app_help
 ```
 If using for AWS you must assume the role you want to use prior to running the agent.
 
-### Dev mode uses make
-Use ARG1, ARG2... env vars to pass arguments to the agent
+### Dev mode uses uv to run the agent
 ```bash
-ARG1="list all lambda functions in region us-east-1" make run
+uv run python -m auto_tool_agent "list all lambda functions in region us-east-1"
 ```
 
 ```bash
-ARG1="-f" ARG2="csv" ARG3="list all s3 buckets in region us-east-1" make run
+uv run python -m auto_tool_agent -f csv "list all lambda functions in region us-east-1"
 ```
 
 ### Normal run examples
@@ -68,69 +67,38 @@ Output CSV format to file data.csv using query of s3 buckets and their storage c
 auto_tool_agent --format csv --output data.csv "list all s3 buckets and their storage class"
 ```
 
-Output Markdown format to file data.md using query of top 3 hacker news articles:
+Output Markdown format to file data.md using query of top 5 hacker news articles:
 ```bash
-auto_tool_agent.exe -f markdown -o data.markdown -i 5 -s generic.md "fetch me the top 3 articles from hacker news"
+auto_tool_agent.exe -f markdown -o data.markdown "fetch me the top 5 articles from hacker news"
 ```
 
-## Output format examples
+## Output format examples dev mode
 You can specify any of the supported output formats enhance the system prompt for better output formatting.  
 ### Markdown
 ```bash
-ARG1='-f' ARG2='markdown' ARG3='-o' ARG4='data.md' ARG5='list all s3 buckets in region us-east-1. Use a Markdown table with columns bucket_name, region' make run
+uv run python -m auto_tool_agent -f markdown -o data.md "list all s3 buckets in region us-east-1"
 ```
 
 ### CSV
 ```bash
-ARG1='-f' ARG2='csv' ARG3='-o' ARG4='data.csv' ARG5='list all s3 buckets in region us-east-1. Use CSV with fields bucket_name, region' make run
+uv run python -m auto_tool_agent -f csv -o data.csv "list all s3 buckets in region us-east-1"
 ```
 
 ### JSON
 ```bash
-ARG1='-f' ARG2='json' ARG3='-o' ARG4='data.json' ARG5='list all s3 buckets in region us-east-1. Use the following json schema [{"bucket_name": "string", "region": "string"}]' make run
+uv run python -m auto_tool_agent -f json -o data.json 'list all s3 buckets in region us-east-1. Use the following json schema [{"bucket_name": "string", "region": "string"}]'
 ```
 
 ### Text
 ```bash
-ARG1='-f' ARG2='text' ARG3='-o' ARG4='data.txt' ARG5='list all s3 buckets in region us-east-1.' make run
+uv run python -m auto_tool_agent -f  text -o data.txt "list all s3 buckets in region us-east-1."
 ```
-## Folders dev mode
-* REPO_ROOT/src/auto_tool_agent/sandbox - sandbox folder where the agent will write its tools
-* REPO_ROOT/src/auto_tool_agent/tools - tools available to agent that it cant edit
-* REPO_ROOT/src/auto_tool_agent/system_prompts - system prompts folder
-* REPO_ROOT/tools_archive - good tools that are currently disabled
 
-## Folders installed mode
-* ~/.auto_tool_agent/sandbox - sandbox folder where the agent will write its tools
-* ~/.auto_tool_agent/system_prompts - system prompts folder
-
+## Folders
+* ~/.config/auto_tool_agent/sandbox - sandbox folder where the agent will write project files
+* ~/.config/auto_tool_agent/sandbox/src/sandbox - folder where the agent will write its tools
 
 ## Agent Logic
-
-### System prompt
-The agent has access to system prompts in the `src/auto_tool_agent/system_prompts folder`.  
-You can change the default system prompt with the --system_prompt or -s param.  
-The default system prompt is aws.md which is tuned for AWS.
-
-### Tool folders
-The agent has an always available set of tools to allow it to list, read and write files in the tools_tests folder.  
-The tools_tests folder is the only folder that the agent has access to.
-
-### Iterations
-Each time the agent needs to create or update a tool it will start a new iteration.
-The maximum number of iterations defaults to 5 but can be changed with the --max_iterations or -m param.
-
-Example 1:  
-* 1st iteration: Agent looks at user request and decides it needs to create a tool.
-* 2nd iteration: Agent uses the tool to generate an answer.
-
-Example 2:
-* 1st iteration: Agent looks at user request and decides has all tools it needs and generates an answer.
-
-Example 3:
-* 1st iteration: Agent looks at user request and decides it needs to create a tool.
-* 2nd iteration: Agent uses the tool but gets an error, looks looks at the broken tool and fixes it.
-* 3rd iteration: Agent uses the tool to generate an answer.
 
 
 ## Running in the Generic Development Container (GDC)

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import os
 import sys
+from typing import Literal
+
 from argparse import ArgumentParser
 
 from auto_tool_agent import __application_binary__, __application_title__, __version__
@@ -13,6 +15,17 @@ from auto_tool_agent.lib.llm_providers import (
     provider_default_models,
     get_llm_provider_from_str,
 )
+
+OutputFormats = Literal["none", "text", "markdown", "csv", "json"]
+
+output_formats: list[OutputFormats] = ["none", "text", "markdown", "csv", "json"]
+format_to_extension: dict[OutputFormats, str] = {
+    "none": "",
+    "text": ".txt",
+    "markdown": ".md",
+    "csv": ".csv",
+    "json": ".json",
+}
 
 
 def parse_args():
@@ -57,15 +70,6 @@ def parse_args():
     )
 
     parser.add_argument(
-        "-s",
-        "--system_prompt",
-        dest="system_prompt",
-        type=str,
-        default="generic.md",
-        help="The system prompt file name with default of generic.md.",
-    )
-
-    parser.add_argument(
         "-u",
         "--user_prompt",
         dest="user_prompt",
@@ -91,6 +95,16 @@ def parse_args():
     )
 
     parser.add_argument(
+        "-f",
+        "--format",
+        dest="output_format",
+        type=str,
+        choices=output_formats,
+        default="markdown",
+        help="Specifies the output format that the AI should generate. Default is markdown.",
+    )
+
+    parser.add_argument(
         "user_request",
         type=str,
         nargs="*",
@@ -108,20 +122,17 @@ def parse_args():
     )
 
     parser.add_argument(
-        "-f",
-        "--format",
-        dest="output_format",
-        type=str,
-        choices=["none", "text", "markdown", "csv", "json"],
-        default="markdown",
-        help="Specifies the output format that the AI should generate. Default is markdown.",
-    )
-
-    parser.add_argument(
         "--sandbox_dir",
         dest="sandbox_dir",
         type=str,
         help="The directory to sandbox agent. defaults to DATA_DIR/sandbox.",
+    )
+
+    parser.add_argument(
+        "--clear_sandbox",
+        dest="clear_sandbox",
+        action="store_true",
+        help="Clear the sandbox directory before running.",
     )
 
     args = parser.parse_args()
