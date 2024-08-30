@@ -25,6 +25,7 @@ from auto_tool_agent.graph_state import (
     ToolDescription,
     DependenciesNeededResponse,
     CodeReviewResponse,
+    FinalResultResponse,
 )
 from auto_tool_agent.lib.execute_command import execute_command
 from auto_tool_agent.lib.module_loader import ModuleLoader
@@ -188,7 +189,7 @@ def get_available_tool_descriptions(state: GraphState):
             tools.append({"file_name": file, "file": docstring or data})
     result = ""
     for tool_desc in tools:
-        result += "Tool_Name: " + tool_desc["file_name"] + "\n"
+        result += "Tool_Name: " + tool_desc["file_name"][:-3] + "\n"
         result += "Description: " + tool_desc["file"] + "\n\n"
 
     return result
@@ -400,7 +401,7 @@ Below are the rules for the code:
 """,
                     ),
                 ]
-            )  # pyright: ignore
+            )  # type: ignore
             agent_log.info("Review result: %s", result)
             if result.tool_updated and result.updated_tool_code:
                 any_updated = True
@@ -428,9 +429,9 @@ def get_results(state: GraphState):
         temperature=0,
     )
     agent_log.info(llm_config)
-    agent_log.info(state["needed_tools"])
+    agent_log.info("needed_tools: %s", state["needed_tools"])
     load_existing_tools(state)
-    agent_log.info(tool_data)
+    agent_log.info("ai_tools: %s", tool_data)
     tools = []
     for tool_def in state["needed_tools"]:
         if tool_def.name in tool_data.ai_tools:
@@ -443,8 +444,15 @@ Your job is get the requested information using the tools provided.
 You must follow all instructions below:
 * Use tools available to you.
 * Do not make up information.
-* If a tool returns an error, return the tool name and the error message in the following JSON format: 
-{{"tool_name": "string", "error": "error_message"}}"
+* If a tool returns an error, return the tool name and the error message
+* Return the results in the following JSON format. Do not include markdown or formatting such as ```json:
+{{
+    "final_result": "string",
+    "error": {{
+        "tool_name": "string",
+        "error_message": "error_message"
+    }}
+}}"
 """
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -469,9 +477,10 @@ You must follow all instructions below:
         }
     )
     output = ret["output"]
+    final_result_response = FinalResultResponse.model_validate_json(output)
     return {
         "call_stack": ["get_results"],
-        "final_result": output,
+        "final_result": final_result_response,
     }
 
 
@@ -483,12 +492,52 @@ def ask_human(_: GraphState):
     }
 
 
+def format_output(state: GraphState):
+    """Format output."""
+    if not state["final_result"] or not state["final_result"].final_result:
+        return {
+            "call_stack": ["format_output"],
+            "final_result": state["final_result"],
+        }
+
+    provider = get_llm_provider_from_str(opts.provider)
+    llm_config = LlmConfig(
+        provider=provider,
+        model_name=opts.model_name or provider_default_models[provider],
+        temperature=0,
+    )
+    agent_log.info(llm_config)
+    model: BaseChatModel = llm_config.build_chat_model()
+    system_prompt = """
+# Your job is format the user provided data into Markdown.
+* Use tables and lists where appropriate.
+    """
+    format_result = model.with_config({"run_name": "Output Formatter"}).invoke(
+        [
+            ("system", system_prompt),
+            (
+                "user",
+                f"""
+{state["final_result"].final_result}
+""",
+            ),
+        ]
+    )  # pyright: ignore
+
+    state["final_result"].final_result = str(format_result.content)
+    return {
+        "call_stack": ["format_output"],
+        "final_result": state["final_result"],
+    }
+
+
 def save_state(state: GraphState):
     """Save the state."""
     with open("state.json", "wt", encoding="utf-8") as f:
         json.dump(state, f, indent=2, default=str)
-    with open("final_result.md", "wt", encoding="utf-8") as f:
-        f.write(state["final_result"])
+    if state["final_result"]:
+        with open("final_result.md", "wt", encoding="utf-8") as f:
+            f.write(state["final_result"].final_result)
     return {"call_stack": ["save_state"]}
 
 
@@ -501,7 +550,7 @@ workflow.add_node("plan_project", plan_project)
 workflow.add_node("build_tool", build_tool)
 workflow.add_node("review_tools", review_tools)
 workflow.add_node("get_results", get_results)
-workflow.add_node("ask_human", ask_human)
+workflow.add_node("format_output", format_output)
 workflow.add_node("save_state", save_state)
 
 workflow.add_edge(START, "setup_sandbox")
@@ -510,8 +559,8 @@ workflow.add_edge("sync_venv", "plan_project")
 workflow.add_conditional_edges("plan_project", is_tool_needed)
 workflow.add_edge("build_tool", "review_tools")
 workflow.add_edge("review_tools", "get_results")
-workflow.add_edge("get_results", "ask_human")
-workflow.add_edge("ask_human", "save_state")
+workflow.add_edge("get_results", "format_output")
+workflow.add_edge("format_output", "save_state")
 workflow.add_edge("save_state", END)
 
 
@@ -561,7 +610,7 @@ def run_graph():
             ),
             "user_request": opts.user_request,
             "needed_tools": [],
-            "final_result": "",
+            "final_result": None,
             "user_feedback": "",
         },
         config={"configurable": {"thread_id": 42}},

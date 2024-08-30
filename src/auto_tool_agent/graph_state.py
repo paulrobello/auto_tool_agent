@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TypedDict, Annotated, List
+from typing import TypedDict, Annotated, List, Optional
 from pydantic import BaseModel, Field
 
 
@@ -57,6 +57,25 @@ class DependenciesNeededResponse(BaseModel):
     )
 
 
+class FinalResultErrorResponse(BaseModel):
+    """Final result error response."""
+
+    tool_name: str = Field(description="Name of the tool.")
+    error_message: str = Field(
+        description="Error message if the tool failed to execute."
+    )
+
+
+class FinalResultResponse(BaseModel):
+    """Final result response."""
+
+    final_result: str = Field(description="Final result of the tool.")
+    error: Optional[FinalResultErrorResponse] = Field(
+        default=None,
+        description="Error message if the tool failed to execute.",
+    )
+
+
 def add_node_call(left: list[str], right: list[str]) -> list[str]:
     """Add a node call."""
     return left + right
@@ -71,5 +90,5 @@ class GraphState(TypedDict):
     dependencies: list[str]
     user_request: str
     needed_tools: List[ToolDescription]
-    final_result: str
+    final_result: Optional[FinalResultResponse]
     user_feedback: str
