@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from langchain_core.language_models import BaseChatModel
 
+from auto_tool_agent.app_logging import console
 from auto_tool_agent.graph.graph_shared import build_chat_model, save_state
 from auto_tool_agent.graph.graph_state import GraphState
 from auto_tool_agent.opts import opts
@@ -44,6 +45,7 @@ def get_output_format_prompt(output_format: str) -> str:
 
 def format_output(state: GraphState):
     """Format output."""
+    console.log("[bold green]Formatting output...")
     if not state["final_result"] or not state["final_result"].final_result:
         return {
             "call_stack": ["format_output"],

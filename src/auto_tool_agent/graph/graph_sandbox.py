@@ -9,39 +9,52 @@ from typing import cast
 import tomlkit
 from tomlkit.items import Table, Array
 
-from auto_tool_agent.graph.graph_shared import agent_log, load_existing_tools
+from auto_tool_agent.graph.graph_shared import load_existing_tools
+from auto_tool_agent.app_logging import agent_log, console
 from auto_tool_agent.graph.graph_state import GraphState
 from auto_tool_agent.lib.execute_command import execute_command
+from auto_tool_agent.opts import opts
 
 
 def setup_sandbox(state: GraphState):
     """Entrypoint."""
+    console.log("[bold green]Checking sandbox...")
     sandbox_dir = os.path.expanduser(state["sandbox_dir"]).replace("\\", "/")
 
     if state["clean_run"] and os.path.exists(sandbox_dir):
-        agent_log.info("Removing old sandbox: %s", sandbox_dir)
+        console.log("[bold green]Removing old sandbox...")
+        if opts.verbose > 1:
+            agent_log.info("Removing old sandbox: %s", sandbox_dir)
         shutil.rmtree(sandbox_dir)
 
     if not os.path.exists(sandbox_dir):
-        agent_log.info("Sandbox path not found, creating...")
+        console.log("[bold green]Sandbox path not found, creating...")
+        if opts.verbose > 1:
+            agent_log.info("Sandbox path not found, creating...")
         os.makedirs(sandbox_dir)
 
-    agent_log.info("Sandbox path: %s", sandbox_dir)
+    if opts.verbose > 1:
+        agent_log.info("Sandbox path: %s", sandbox_dir)
     return {
         "call_stack": ["entrypoint"],
         "sandbox_dir": sandbox_dir,
     }
 
 
-# pylint: disable=too-many-statements
+# pylint: disable=too-many-statements, too-many-branches
 def sync_venv(state: GraphState):
     """Sync the venv."""
-    agent_log.info("Syncing venv...")
+    console.log("[bold green]Checking venv...")
+    if opts.verbose > 1:
+        agent_log.info("Syncing venv...")
+
     sandbox_dir = state["sandbox_dir"]
     project_config = os.path.join(sandbox_dir, "pyproject.toml")
 
     if not os.path.exists(project_config):
-        agent_log.info("Project config not found, creating...")
+        console.log("[bold green]Project config not found, creating...")
+        if opts.verbose > 1:
+            agent_log.info("Project config not found, creating...")
         config = {"command": "uv", "params": ["init"], "folder": sandbox_dir}
         result = execute_command(config)
         if result["exit_code"] != 0:
@@ -75,14 +88,17 @@ def sync_venv(state: GraphState):
         for dep in existing_deps
     ]
     existing_deps.sort()
-    agent_log.info("Existing deps: %s", existing_deps)
+    if opts.verbose > 1:
+        agent_log.info("Existing deps: %s", existing_deps)
 
     if len(state["dependencies"]) > 0:
         requested_deps = state["dependencies"]
         requested_deps.sort()
-        agent_log.info("Requested deps: %s", requested_deps)
+        if opts.verbose > 1:
+            agent_log.info("Requested deps: %s", requested_deps)
         to_install = [dep for dep in requested_deps if dep not in existing_deps]
         if len(to_install) > 0:
+            console.log("[bold green]Installing missing deps...")
             config = {
                 "command": "uv",
                 "params": ["add"] + to_install,
@@ -93,11 +109,14 @@ def sync_venv(state: GraphState):
                 agent_log.error(result)
                 raise ValueError("Failed to add dependencies to project config.")
         else:
-            agent_log.info("Dependencies already installed.")
+            if opts.verbose > 1:
+                agent_log.info("Dependencies already installed.")
 
         to_remove = [dep for dep in existing_deps if dep not in requested_deps]
         if len(to_remove) > 0:
-            agent_log.info("Removing dependencies: %s", to_remove)
+            console.log("[bold green]Removing unused deps...")
+            if opts.verbose > 1:
+                agent_log.info("Removing dependencies: %s", to_remove)
             config = {
                 "command": "uv",
                 "params": ["remove"] + to_remove,

@@ -4,17 +4,15 @@ from __future__ import annotations
 
 import importlib
 import importlib.util
-import logging
 import os
 import time
 
 from langchain_core.tools import BaseTool
 from watchdog.events import FileSystemEventHandler
 
+from auto_tool_agent.app_logging import ml_log
+from auto_tool_agent.opts import opts
 from auto_tool_agent.tool_data import tool_data
-
-MODULE_LOADER_PREFIX = "[purple]\\[module_loader][/purple]"
-ml_log = logging.getLogger(MODULE_LOADER_PREFIX)
 
 
 class ModuleLoader(FileSystemEventHandler):
@@ -23,9 +21,9 @@ class ModuleLoader(FileSystemEventHandler):
     def __init__(self, folder_path: str) -> None:
         """Initialize the event handler."""
         super().__init__()
-        self.load_existing_modules(
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools")
-        )
+        # self.load_existing_modules(
+        #     os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools")
+        # )
         self.folder_path = folder_path
         # the folder to watch
         self.load_existing_modules(self.folder_path)
@@ -61,7 +59,7 @@ class ModuleLoader(FileSystemEventHandler):
                 spec = importlib.util.spec_from_file_location(module_name, module_path)
                 if not spec:
                     ml_log.error(
-                        "[red]Error[/red]: unable to load module %s", module_name
+                        "[red]Error[/red]: unable to load module spec %s", module_name
                     )
                     return
                 module = importlib.util.module_from_spec(spec)
@@ -73,7 +71,8 @@ class ModuleLoader(FileSystemEventHandler):
                     return
                 # ml_log.info("Attempting to load module: %s", module_name)
                 spec.loader.exec_module(module)
-                ml_log.info("Loaded module: %s", module_name)
+                if opts.verbose > 1:
+                    ml_log.info("Loaded module: %s", module_name)
                 new_tools: list[BaseTool] = self.discover_tools(module)
                 # ml_log.info("New tools found: %d", len(new_tools))
                 if len(new_tools) != 1:
@@ -86,7 +85,8 @@ class ModuleLoader(FileSystemEventHandler):
                     return
                 tool_data.add_good_tool(module_name, new_tools[0])
             else:
-                ml_log.info("Ignoring non-Python file: %s", module_path)
+                if opts.verbose > 1:
+                    ml_log.info("Ignoring non-Python file: %s", module_path)
         except Exception as e:  # pylint: disable=broad-except
             tool_data.add_bad_tool(module_name)
             ml_log.exception(
@@ -116,7 +116,8 @@ class ModuleLoader(FileSystemEventHandler):
         for name in dir(module):
             func = getattr(module, name)
             if isinstance(func, BaseTool):
-                ml_log.info("found tool: %s", name)
+                if opts.verbose > 1:
+                    ml_log.info("found tool: %s", name)
                 tools.append(func)
                 tool_data.last_tool_load = time.time()
         return tools

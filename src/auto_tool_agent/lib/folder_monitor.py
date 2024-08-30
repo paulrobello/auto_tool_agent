@@ -2,17 +2,14 @@
 
 from __future__ import annotations
 
-import logging
 import os
 
 import asyncio
 from argparse import Namespace
 from watchdog.observers import Observer
 
+from auto_tool_agent.app_logging import fm_log
 from auto_tool_agent.lib.module_loader import ModuleLoader
-
-FOLDER_MONITOR_PREFIX = "[cyan]\\[folder_monitor][/cyan]"
-fm_log = logging.getLogger(FOLDER_MONITOR_PREFIX)
 
 
 class FolderMonitor:

@@ -46,7 +46,7 @@ def parse_args():
         "-v",
         "--verbose",
         type=int,
-        default=2,
+        default=1,
         help="Output additional information. Higher numbers are more verbose.",
         choices=[0, 1, 2, 3],
     )

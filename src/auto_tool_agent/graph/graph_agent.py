@@ -11,9 +11,12 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.graph import NodeStyles
 from langchain_core.language_models import BaseChatModel
 from rich import print  # pylint: disable=redefined-builtin
+from rich.markdown import Markdown
+
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 
+from auto_tool_agent.app_logging import console, agent_log
 from auto_tool_agent.graph.graph_code import (
     review_tools,
     sync_deps_if_needed,
@@ -24,7 +27,6 @@ from auto_tool_agent.graph.graph_planner import plan_project
 from auto_tool_agent.graph.graph_sandbox import setup_sandbox, sync_venv
 from auto_tool_agent.graph.graph_shared import (
     build_chat_model,
-    agent_log,
     save_state,
     load_existing_tools,
 )
@@ -32,6 +34,7 @@ from auto_tool_agent.graph.graph_state import (
     GraphState,
     FinalResultResponse,
 )
+from auto_tool_agent.lib.output_utils import csv_to_table, highlight_json
 from auto_tool_agent.opts import opts
 
 from auto_tool_agent.tool_data import tool_data
@@ -43,24 +46,33 @@ def is_tool_needed(state: GraphState) -> Literal["build_tool", "get_results_pre_
     needed_tools = state["needed_tools"]
     for tool_def in needed_tools:
         if not tool_def.existing:
+            console.log(
+                f"[bold green]New tool needed: [bold yellow]{tool_def.name}. [/bold yellow]Building tool..."
+            )
             return "build_tool"
 
     if sync_deps_if_needed(state):
-        agent_log.info("Updated dependencies: %s", state["dependencies"])
+        if opts.verbose > 1:
+            agent_log.info("Updated dependencies: %s", state["dependencies"])
 
     return "get_results_pre_check"
 
 
 def get_results_pre_check(_: GraphState):
     """Check if a tool is needed."""
+    console.log("[bold green]Ensuring needed tools are available...")
     return {"call_stack": ["get_results_pre_check"]}
 
 
 def has_needed_tools(state: GraphState) -> Literal["plan_project", "get_results"]:
     """Check if a tool is needed."""
+    load_existing_tools(state)
     needed_tools = state["needed_tools"]
     for tool_def in needed_tools:
         if tool_def.name not in tool_data.ai_tools:
+            console.log(
+                f"[bold red]Missing tool: [bold yellow]{tool_def.name}. [/bold yellow]Returning to planner..."
+            )
             return "plan_project"
 
     return "get_results"
@@ -68,10 +80,11 @@ def has_needed_tools(state: GraphState) -> Literal["plan_project", "get_results"
 
 def get_results(state: GraphState):
     """Use tools to get results."""
+    console.log("[bold green]Getting results...")
 
-    agent_log.info("needed_tools: %s", state["needed_tools"])
-    load_existing_tools(state)
-    agent_log.info("ai_tools: %s", tool_data)
+    if opts.verbose > 1:
+        agent_log.info("needed_tools: %s", state["needed_tools"])
+        agent_log.info("ai_tools: %s", tool_data)
     tools = []
     for tool_def in state["needed_tools"]:
         if tool_def.name in tool_data.ai_tools:
@@ -107,7 +120,7 @@ You must follow all instructions below:
         {"run_name": "Get Results"}
     )
     agent_executor = AgentExecutor(
-        agent=agent, tools=tools, verbose=True  # pyright: ignore [reportArgumentType]
+        agent=agent, tools=tools, verbose=False  # pyright: ignore [reportArgumentType]
     )
     ret = agent_executor.invoke(
         {
@@ -117,7 +130,7 @@ You must follow all instructions below:
         }
     )
     output = ret["output"]
-    agent_log.info("output: ============\n%s\n===========", output)
+    # agent_log.info("output: ============\n%s\n===========", output)
     if isinstance(output, str):
         final_result_response = FinalResultResponse.model_validate_json(output)
     else:
@@ -169,19 +182,26 @@ checkpointer = MemorySaver()
 # Note that we're (optionally) passing the memory when compiling the graph
 app = workflow.compile(checkpointer=checkpointer)
 
-# Draw the graph via mermaid
-with open("graph.mermaid", "wt", encoding="utf-8") as mermaid_file:
-    mermaid_file.write(
-        app.get_graph().draw_mermaid(
-            node_colors=NodeStyles(
-                default="fill: #333", first="fill: #353", last="fill: #533"
+
+def generate_graph_viz():
+    """Generate graphviz."""
+    console.log("[bold green]Creating graph viz...")
+    # Draw the graph via mermaid
+    with open("graph.mermaid", "wt", encoding="utf-8") as mermaid_file:
+        mermaid_file.write(
+            app.get_graph().draw_mermaid(
+                node_colors=NodeStyles(
+                    default="fill: #333", first="fill: #353", last="fill: #533"
+                )
             )
         )
-    )
 
 
 def run_graph():
     """Run the graph."""
+
+    generate_graph_viz()
+
     if opts.generate_graph:
         return
     old_state: dict[str, Any] = {}
@@ -211,9 +231,30 @@ def run_graph():
         "user_feedback": "",
     }
 
-    # Use the Runnable
+    console.log(
+        f"[bold green]Invoking graph request: [bold cyan]{initial_state['user_request']}"
+    )
     final_state = app.invoke(
         initial_state,
         config={"configurable": {"thread_id": 42}},
     )
-    print(final_state)
+    if opts.verbose > 2:
+        print(final_state)
+
+    output_file = "./final_result.md"
+    if opts.output_file:
+        output_file = opts.output_file
+    if os.path.exists(output_file) and os.path.getsize(output_file) > 2:
+        with open(output_file, "rt", encoding="utf-8") as outfile:
+            data = outfile.read()
+
+        if opts.output_format == "markdown":
+            console.print(Markdown(data))
+        elif opts.output_format == "json":
+            console.print(highlight_json(data))
+        elif opts.output_format == "csv":
+            console.print(csv_to_table(data))
+        elif opts.output_format == "text":
+            console.print(data)
+        else:
+            console.print(data)

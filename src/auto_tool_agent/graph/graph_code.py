@@ -5,21 +5,21 @@ from __future__ import annotations
 import os
 
 from langchain_core.language_models import BaseChatModel
-from rich import print  # pylint: disable=redefined-builtin
 
 from auto_tool_agent.graph.graph_sandbox import sync_venv
 from auto_tool_agent.graph.graph_shared import (
-    agent_log,
     build_chat_model,
     save_state,
     load_existing_tools,
 )
+from auto_tool_agent.app_logging import agent_log, console
 from auto_tool_agent.graph.graph_state import (
     GraphState,
     ToolDescription,
     DependenciesNeededResponse,
     CodeReviewResponse,
 )
+from auto_tool_agent.opts import opts
 
 CODE_RULES = """
 * Code must be well formatted, have typed arguments and have a doc string in the function body describing it and its arguments.
@@ -35,7 +35,9 @@ CODE_RULES = """
 
 def code_tool(tool_desc: ToolDescription) -> str:
     """Code the tool."""
-    agent_log.info("Code tool... %s", tool_desc.name)
+    console.log(f"[bold green]Creating tool: [bold yellow]{tool_desc.name}")
+    if opts.verbose > 1:
+        agent_log.info("Code tool... %s", tool_desc.name)
     model = build_chat_model()
 
     system_prompt = f"""
@@ -58,8 +60,12 @@ Tool_Description: {tool_desc.description}
             ),
         ]
     )
-    print(code_result.content)
+    if opts.verbose > 1:
+        agent_log.info("Tool code: %s", code_result.content)
 
+    console.log(
+        f"[bold green]Evaluating dependencies for tool: [bold yellow]{tool_desc.name}"
+    )
     structure_model = model.with_structured_output(DependenciesNeededResponse)
 
     system_prompt = """
@@ -117,6 +123,7 @@ Below are the rules for the code:
     any_updated: bool = False
     for tool_def in state["needed_tools"]:
         if tool_def.needs_review:
+            console.log(f"[bold green]Reviewing tool: [bold yellow]{tool_def.name}")
             tool_def.needs_review = False
             result: CodeReviewResponse = structure_model.with_config(
                 {"run_name": "Review Tool"}
@@ -131,8 +138,13 @@ Below are the rules for the code:
                     ),
                 ]
             )  # type: ignore
-            agent_log.info("Review result: %s", result)
+            if opts.verbose > 1:
+                agent_log.info("Review result: %s", result)
             if result.tool_updated and result.updated_tool_code:
+                console.log(
+                    f"[bold red]Tool review did not pass: [bold yellow]{tool_def.name}"
+                )
+                console.log(f"[bold red]{result.tool_issues}")
                 any_updated = True
                 with open(
                     os.path.join(
@@ -142,6 +154,11 @@ Below are the rules for the code:
                     encoding="utf-8",
                 ) as f:
                     f.write(result.updated_tool_code)
+                console.log(f"[bold green]Tool corrected: [bold yellow]{tool_def.name}")
+            else:
+                console.log(
+                    f"[bold green]Tool review passed: [bold yellow]{tool_def.name}"
+                )
 
     if any_updated:
         load_existing_tools(state)
@@ -163,6 +180,7 @@ def sync_deps_if_needed(state: GraphState) -> bool:
     current_deps = set(state["dependencies"])
     needed_deps = set(build_deps_list(state))
     if current_deps != needed_deps:
+        console.log("[bold green]Dependencies changed...")
         sync_venv(state)
         return True
     return False
@@ -173,7 +191,8 @@ def build_tool(state: GraphState):
     needed_tools = state["needed_tools"]
     for tool_def in needed_tools:
         if not tool_def.existing:
-            agent_log.info("Building tool... %s", tool_def.name)
+            if opts.verbose > 1:
+                agent_log.info("Building tool... %s", tool_def.name)
             code = code_tool(tool_def)
             tool_path = os.path.join(
                 state["sandbox_dir"], "src", "sandbox", tool_def.name + ".py"
@@ -184,7 +203,8 @@ def build_tool(state: GraphState):
             tool_def.needs_review = True
     extra_calls = []
     if sync_deps_if_needed(state):
-        agent_log.info("Updated dependencies: %s", state["dependencies"])
+        if opts.verbose > 1:
+            agent_log.info("Updated dependencies: %s", state["dependencies"])
         extra_calls.append("sync_venv")
     save_state(state)
     return {

@@ -7,6 +7,7 @@ import os
 
 from langchain_core.language_models import BaseChatModel
 
+from auto_tool_agent.app_logging import console
 from auto_tool_agent.graph.graph_shared import build_chat_model
 from auto_tool_agent.graph.graph_state import GraphState, ToolNeededResponse
 from auto_tool_agent.tool_data import tool_data
@@ -50,7 +51,7 @@ def get_available_tool_descriptions() -> str:
 
 def plan_project(state: GraphState):
     """Check if a tool is needed."""
-
+    console.log("[bold green]Planning project...")
     available_tools = get_available_tool_descriptions()
     system_prompt = """
 # You are an application architect.
