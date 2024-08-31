@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import os
-
+from pathlib import Path
 from langchain_core.language_models import BaseChatModel
 
 from auto_tool_agent.graph.graph_sandbox import sync_venv
@@ -98,9 +97,8 @@ Tool_Description: {tool_desc.description}
 
 def load_function_code(state: GraphState, tool_name: str) -> str:
     """Load function code."""
-    tool_path = os.path.join(state["sandbox_dir"], "src", "sandbox", tool_name + ".py")
-    with open(tool_path, "rt", encoding="utf-8") as f:
-        return f.read()
+    tool_path = Path(state["sandbox_dir"]) / "src" / "sandbox" / (tool_name + ".py")
+    return tool_path.read_text(encoding="utf-8")
 
 
 def review_tools(state: GraphState):
@@ -146,14 +144,13 @@ Below are the rules for the code:
                 )
                 console.log(f"[bold red]{result.tool_issues}")
                 any_updated = True
-                with open(
-                    os.path.join(
-                        state["sandbox_dir"], "src", "sandbox", tool_def.name + ".py"
-                    ),
-                    "wt",
-                    encoding="utf-8",
-                ) as f:
-                    f.write(result.updated_tool_code)
+                tool_file = (
+                    Path(state["sandbox_dir"])
+                    / "src"
+                    / "sandbox"
+                    / (tool_def.name + ".py")
+                )
+                tool_file.write_text(result.updated_tool_code, encoding="utf-8")
                 console.log(f"[bold green]Tool corrected: [bold yellow]{tool_def.name}")
             else:
                 console.log(
@@ -194,11 +191,10 @@ def build_tool(state: GraphState):
             if opts.verbose > 1:
                 agent_log.info("Building tool... %s", tool_def.name)
             code = code_tool(tool_def)
-            tool_path = os.path.join(
-                state["sandbox_dir"], "src", "sandbox", tool_def.name + ".py"
+            tool_file = (
+                Path(state["sandbox_dir"]) / "src" / "sandbox" / (tool_def.name + ".py")
             )
-            with open(tool_path, "wt", encoding="utf-8") as f:
-                f.write(code)
+            tool_file.write_text(code, encoding="utf-8")
             tool_def.existing = True
             tool_def.needs_review = True
     extra_calls = []

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import os
-
 import simplejson as json
 from langchain_core.language_models import BaseChatModel
 
@@ -51,5 +49,5 @@ def save_state(state: GraphState):
 
 def load_existing_tools(state: GraphState):
     """Load existing tools."""
-    ModuleLoader(os.path.join(state["sandbox_dir"], "src", "sandbox"))
+    ModuleLoader(state["sandbox_dir"] / "src" / "sandbox")
     # print(tool_data)

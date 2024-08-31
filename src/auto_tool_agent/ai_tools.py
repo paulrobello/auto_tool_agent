@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
+
 from typing import Union, Literal
 import datetime
 
@@ -297,7 +299,7 @@ def execute_script(
     """
 
     try:
-        env = read_env_file("../.env") | read_env_file(".env")
+        env = read_env_file(Path("../.env")) | read_env_file(Path(".env"))
 
         script_filename = os.path.basename(script_filename)
 

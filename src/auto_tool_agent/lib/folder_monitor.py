@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import os
-
+from pathlib import Path
 import asyncio
 from argparse import Namespace
 from watchdog.observers import Observer
@@ -15,10 +14,10 @@ from auto_tool_agent.lib.module_loader import ModuleLoader
 class FolderMonitor:
     """Monitor the specified folder for changes and load new modules."""
 
-    def __init__(self, folder_path: str, opts: Namespace) -> None:
+    def __init__(self, folder_path: Path, opts: Namespace) -> None:
         """Initialize the folder monitor."""
         self.folder_path = folder_path
-        if not os.path.exists(self.folder_path):
+        if not self.folder_path.exists():
             raise ValueError(f"Folder {self.folder_path} does not exist.")
         self.opts = opts
         self.observer = Observer()
@@ -28,7 +27,9 @@ class FolderMonitor:
         """Start the folder monitor."""
         if self.opts.verbose > 0:
             fm_log.info("Starting up: %s", self.folder_path)
-        self.observer.schedule(self.event_handler, self.folder_path, recursive=True)
+        self.observer.schedule(
+            self.event_handler, str(self.folder_path), recursive=True
+        )
         self.observer.start()
         while True:
             try:
@@ -39,6 +40,6 @@ class FolderMonitor:
     async def stop(self) -> None:
         """Stop the folder monitor."""
         if self.opts.verbose > 0:
-            fm_log.info("Shutting down:  %s", self.folder_path)
+            fm_log.info("Shutting down:  %s", str(self.folder_path))
         self.observer.stop()
         self.observer.join()

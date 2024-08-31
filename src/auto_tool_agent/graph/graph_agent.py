@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import os
 from typing import Literal, Any
+from pathlib import Path
 import simplejson as json
 
 from langchain.agents import create_tool_calling_agent, AgentExecutor
@@ -204,10 +204,11 @@ def run_graph():
 
     if opts.generate_graph:
         return
+
     old_state: dict[str, Any] = {}
-    if os.path.exists("state.json"):
-        with open("state.json", "rt", encoding="utf-8") as state_file:
-            old_state = json.load(state_file)
+    state_file = Path("state.json")
+    if state_file.exists():
+        old_state = json.loads(state_file.read_text(encoding="utf-8"))
 
     initial_state: GraphState = {
         "clean_run": opts.clear_sandbox,
@@ -241,12 +242,12 @@ def run_graph():
     if opts.verbose > 2:
         print(final_state)
 
-    output_file = "./final_result.md"
+    output_file = Path("./final_result.md")
     if opts.output_file:
         output_file = opts.output_file
-    if os.path.exists(output_file) and os.path.getsize(output_file) > 2:
-        with open(output_file, "rt", encoding="utf-8") as outfile:
-            data = outfile.read()
+
+    if output_file.exists() and output_file.stat().st_size > 2:
+        data = output_file.read_text(encoding="utf-8")
 
         if opts.output_format == "markdown":
             console.print(Markdown(data))

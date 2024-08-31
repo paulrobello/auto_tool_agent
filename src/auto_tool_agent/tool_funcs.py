@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
+
 from typing import Union, Literal
 from urllib.parse import quote
 import requests
@@ -76,7 +78,7 @@ def start_docker_container(
     try:
         if not env:
             env = {}
-        env = read_env_file("../.env") | read_env_file(".env") | env
+        env = read_env_file(Path("../.env")) | read_env_file(Path(".env")) | env
 
         client: DockerClient = docker.DockerClient(
             base_url="tcp://127.0.0.1:2375", tls=False

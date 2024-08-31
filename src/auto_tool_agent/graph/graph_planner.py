@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import ast
-import os
+from pathlib import Path
 
 from langchain_core.language_models import BaseChatModel
 
@@ -15,26 +15,27 @@ from auto_tool_agent.tool_data import tool_data
 
 def get_available_tool_descriptions_old(state: GraphState) -> str:
     """Get available tool descriptions."""
-    tools = []
-    src_dir = os.path.join(state["sandbox_dir"], "src", "sandbox")
-    for file in os.listdir(src_dir):
-        if not file.endswith(".py") or file.startswith("_") or file.startswith("."):
-            continue
-        with open(os.path.join(src_dir, file), "rt", encoding="utf-8") as f:
-            data = f.read()
-            try:
-                module = ast.parse(data)
-                func = next(
-                    (n for n in module.body if isinstance(n, ast.FunctionDef)), None
-                )
-                docstring = ast.get_docstring(func) if func else ""
-            except SyntaxError:
-                docstring = ""
-            tools.append({"file_name": file, "file": docstring or data})
     result = ""
-    for tool_desc in tools:
-        result += "Tool_Name: " + tool_desc["file_name"][:-3] + "\n"
-        result += "Description: " + tool_desc["file"] + "\n\n"
+    src_dir = Path(state["sandbox_dir"]) / "src" / "sandbox"
+
+    for file in src_dir.iterdir():
+        if (
+            not file.name.endswith(".py")
+            or file.name.startswith("_")
+            or file.name.startswith(".")
+        ):
+            continue
+        data = file.read_text(encoding="utf-8")
+        try:
+            module = ast.parse(data)
+            func = next(
+                (n for n in module.body if isinstance(n, ast.FunctionDef)), None
+            )
+            docstring = ast.get_docstring(func) if func else ""
+        except SyntaxError:
+            docstring = ""
+        result += f"Tool_Name: {file.name[:-3]}\n"
+        result += f"Description: {docstring or data}\n\n"
 
     return result
 

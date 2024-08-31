@@ -1,6 +1,7 @@
 """State for the graph"""
 
 from __future__ import annotations
+from pathlib import Path
 
 from typing import TypedDict, Annotated, List, Optional, Any
 from pydantic import BaseModel, Field
@@ -86,7 +87,7 @@ class GraphState(TypedDict):
 
     call_stack: Annotated[list[str], add_node_call]
     clean_run: bool
-    sandbox_dir: str
+    sandbox_dir: Path
     dependencies: list[str]
     user_request: str
     needed_tools: List[ToolDescription]

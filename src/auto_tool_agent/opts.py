@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 import sys
-from typing import Literal
+from typing import Literal, cast
 
 from argparse import ArgumentParser
 
@@ -73,7 +74,7 @@ def parse_args():
         "-u",
         "--user_prompt",
         dest="user_prompt",
-        type=str,
+        type=Path,
         help="The user prompt file name to use for user_request. Use - to read from stdin.",
     )
 
@@ -90,7 +91,7 @@ def parse_args():
         "-o",
         "--output file",
         dest="output_file",
-        type=str,
+        type=Path,
         help="The file to write the final response to.",
     )
 
@@ -115,16 +116,17 @@ def parse_args():
         "-d",
         "--data_dir",
         dest="data_dir",
-        type=str,
-        default=os.environ.get("AUTO_TOOL_AGENT_DATA_DIR")
-        or "~/.config/auto_tool_agent",
+        type=Path,
+        default=Path(
+            os.environ.get("AUTO_TOOL_AGENT_DATA_DIR") or "~/.config/auto_tool_agent"
+        ).expanduser(),
         help="The directory to store data and generated tools. Default is ~/.config/auto_tool_agent.",
     )
 
     parser.add_argument(
         "--sandbox_dir",
         dest="sandbox_dir",
-        type=str,
+        type=Path,
         help="The directory to sandbox agent. defaults to DATA_DIR/sandbox.",
     )
 
@@ -144,18 +146,18 @@ def parse_args():
 
     args = parser.parse_args()
 
-    data_dir = os.path.expanduser(args.data_dir) or os.path.join(
-        os.path.expanduser("~/"), ".config", "auto_tool_agent"
+    data_dir = (
+        Path(args.data_dir).expanduser() or Path.home() / ".config" / "auto_tool_agent"
     )
     args.data_dir = data_dir
 
-    config_file = os.path.join(data_dir, ".env")
-    args.sandbox_dir = os.path.expanduser(args.sandbox_dir or "") or os.path.join(
-        data_dir, "sandbox"
-    )
-    os.makedirs(data_dir, exist_ok=True)
-    os.makedirs(args.sandbox_dir, exist_ok=True)
-    if os.path.exists(config_file):
+    config_file = data_dir / ".env"
+    args.sandbox_dir = (
+        args.sandbox_dir and args.sandbox_dir.expanduser()
+    ) or data_dir / "sandbox"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    args.sandbox_dir.mkdir(parents=True, exist_ok=True)
+    if config_file.exists():
         if args.verbose > 0:
             log.info("Loading config file: %s", config_file)
         load_dotenv(config_file)
@@ -170,12 +172,13 @@ def parse_args():
             parser.error("No user request provided.")
 
     if args.user_prompt:
-        with open(args.user_prompt, "rt", encoding="utf-8") as f:
-            args.user_request = f.read()
+        args.user_request = cast(Path, args.user_prompt).read_text(encoding="utf-8")
     if args.user_request is not None:
         args.user_request = args.user_request.strip()
-    if not args.user_prompt and not args.user_request:
-        parser.error("Either --user_prompt or --user_request must be specified.")
+    if not args.user_prompt and not args.user_request and not args.generate_graph:
+        parser.error(
+            "Either --user_prompt or --user_request or --generate_graph must be specified."
+        )
 
     args.model_name = (
         args.model_name

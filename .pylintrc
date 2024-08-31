@@ -1,5 +1,5 @@
 [MASTER]
-ignore=sandbox,dotenv,tools,tool_archive
+ignore=sandbox,dotenv,tools,tool_archive,console_test.py,old_code
 persistent=yes
 suggestion-mode=yes
 py-version = 3.11.0

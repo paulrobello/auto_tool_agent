@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import shutil
 from typing import cast
 
@@ -19,19 +18,19 @@ from auto_tool_agent.opts import opts
 def setup_sandbox(state: GraphState):
     """Entrypoint."""
     console.log("[bold green]Checking sandbox...")
-    sandbox_dir = os.path.expanduser(state["sandbox_dir"]).replace("\\", "/")
+    sandbox_dir = state["sandbox_dir"].expanduser()
 
-    if state["clean_run"] and os.path.exists(sandbox_dir):
+    if state["clean_run"] and sandbox_dir.exists():
         console.log("[bold green]Removing old sandbox...")
         if opts.verbose > 1:
             agent_log.info("Removing old sandbox: %s", sandbox_dir)
         shutil.rmtree(sandbox_dir)
 
-    if not os.path.exists(sandbox_dir):
+    if not sandbox_dir.exists():
         console.log("[bold green]Sandbox path not found, creating...")
         if opts.verbose > 1:
             agent_log.info("Sandbox path not found, creating...")
-        os.makedirs(sandbox_dir)
+        sandbox_dir.mkdir(parents=True, exist_ok=True)
 
     if opts.verbose > 1:
         agent_log.info("Sandbox path: %s", sandbox_dir)
@@ -49,9 +48,9 @@ def sync_venv(state: GraphState):
         agent_log.info("Syncing venv...")
 
     sandbox_dir = state["sandbox_dir"]
-    project_config = os.path.join(sandbox_dir, "pyproject.toml")
+    project_config = sandbox_dir / "pyproject.toml"
 
-    if not os.path.exists(project_config):
+    if not project_config.exists():
         console.log("[bold green]Project config not found, creating...")
         if opts.verbose > 1:
             agent_log.info("Project config not found, creating...")
@@ -62,8 +61,7 @@ def sync_venv(state: GraphState):
             raise ValueError("Failed to create project config.")
 
         # Update project
-        with open(project_config, "rt", encoding="utf-8") as f:
-            project_toml = tomlkit.parse(f.read())
+        project_toml = tomlkit.parse(project_config.read_text(encoding="utf-8"))
         project = cast(Table, project_toml["project"])
         project["description"] = "AI Auto Tool Agent"
 
@@ -76,11 +74,9 @@ def sync_venv(state: GraphState):
         tab.add("include", "src/**/*.py")
         project["packages"].insert(1, tab)  # pyright: ignore
 
-        with open(project_config, "wt", encoding="utf-8") as f:
-            f.write(tomlkit.dumps(project_toml))
+        project_config.write_text(tomlkit.dumps(project_toml))
 
-    with open(project_config, "rt", encoding="utf-8") as f:
-        project_toml = tomlkit.parse(f.read())
+    project_toml = tomlkit.parse(project_config.read_text(encoding="utf-8"))
     project = cast(Table, project_toml["project"])
     existing_deps = project.get("dependencies") or []
     existing_deps = [

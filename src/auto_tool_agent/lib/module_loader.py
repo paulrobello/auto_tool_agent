@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import importlib
 import importlib.util
-import os
+from pathlib import Path
 import time
 
 from langchain_core.tools import BaseTool
@@ -18,12 +18,9 @@ from auto_tool_agent.tool_data import tool_data
 class ModuleLoader(FileSystemEventHandler):
     """Load modules on startup and when they are created / modified."""
 
-    def __init__(self, folder_path: str) -> None:
+    def __init__(self, folder_path: Path) -> None:
         """Initialize the event handler."""
         super().__init__()
-        # self.load_existing_modules(
-        #     os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools")
-        # )
         self.folder_path = folder_path
         # the folder to watch
         self.load_existing_modules(self.folder_path)
@@ -34,28 +31,27 @@ class ModuleLoader(FileSystemEventHandler):
     def on_modified(self, event):
         """Load the modified module."""
         current_time = time.time()
-        module_path = event.src_path
+        module_path = str(event.src_path)
         if (
             module_path in self.last_loaded_modules
             and current_time - self.last_loaded_modules[module_path] < 1
         ):
             return
-        self.load_module(str(module_path))
+        self.load_module(Path(module_path))
         self.last_loaded_modules[module_path] = current_time
 
-    def load_module(self, module_path: str) -> None:
+    def load_module(self, module_path: Path) -> None:
         """Load the specified module."""
-        module_path = module_path.replace("\\", "/")
-        module_name = module_path[:-3]  # remove .py extension
+        module_name = module_path.name[:-3]  # remove .py extension
 
         try:
             if (
-                not os.path.isfile(module_path)
-                or module_path.endswith("~")
-                or "__init__" in module_path
+                not module_path.is_file()
+                or module_path.name.endswith("~")
+                or "__init__" in module_path.name
             ):
                 return
-            if module_path.endswith(".py"):
+            if module_path.name.endswith(".py"):
                 spec = importlib.util.spec_from_file_location(module_name, module_path)
                 if not spec:
                     ml_log.error(
@@ -93,14 +89,13 @@ class ModuleLoader(FileSystemEventHandler):
                 "[red]Error[/red]: loading module %s: %s", module_path, str(e)
             )
 
-    def load_existing_modules(self, folder_path: str) -> None:
+    def load_existing_modules(self, folder_path: Path) -> None:
         """Load any existing modules in the folder."""
-        if not os.path.exists(folder_path):
+        if not folder_path.exists():
             ml_log.warning("Folder does not exist: %s", folder_path)
             return
-        for filename in os.listdir(folder_path):
-            module_path = os.path.join(folder_path, filename)
-            self.load_module(module_path)
+        for file in folder_path.iterdir():
+            self.load_module(file)
 
     def discover_tools(self, module) -> list[BaseTool]:
         """

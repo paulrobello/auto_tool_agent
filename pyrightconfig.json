@@ -8,7 +8,9 @@
     "**/dotenv",
     "**/build",
     "**/sandbox",
-    "**/tool_archive"
+    "**/tool_archive",
+    "**/old_code",
+    "**/console_test.py"
   ],
   "ignore": [],
   "defineConstant": {

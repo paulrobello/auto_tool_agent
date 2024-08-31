@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+from pathlib import Path
 
 from rich.console import Console
 from rich.logging import RichHandler
@@ -12,13 +13,13 @@ from typing_extensions import Optional
 
 console = Console()
 
-logPath = os.path.join(os.path.abspath(os.path.dirname(__file__)), "logs")
-os.makedirs(logPath, exist_ok=True)
+logPath = Path(os.path.abspath(os.path.dirname(__file__))) / "logs"
+logPath.mkdir(parents=True, exist_ok=True)
 
 logFormatter = logging.Formatter(
     "%(asctime)s[%(levelname)-5.5s] %(name)s - %(message)s"
 )
-fileHandler = logging.FileHandler(f"{logPath}/agent_run.log")
+fileHandler = logging.FileHandler(logPath / "agent_run.log")
 fileHandler.setFormatter(logFormatter)
 
 FORMAT = "%(name)s - %(message)s"
