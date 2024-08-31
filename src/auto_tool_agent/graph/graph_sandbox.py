@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import shutil
 from typing import cast
+from pathlib import Path
+from git import Repo
 
 import tomlkit
 from tomlkit.items import Table, Array
@@ -75,6 +77,14 @@ def sync_venv(state: GraphState):
         project["packages"].insert(1, tab)  # pyright: ignore
 
         project_config.write_text(tomlkit.dumps(project_toml))
+        # (state["sandbox_dir"] / ".gitignore").write_text(
+        #     Path("./sandbox.gitignore").read_text(encoding="utf-8")
+        # )
+        # if (state["sandbox_dir"] / ".git").exists():
+        #     repo = Repo(state["sandbox_dir"])  # type: ignore
+        # else:
+        #     repo = Repo.init(state["sandbox_dir"])  # type: ignore
+        # # repo.untracked_files
 
     project_toml = tomlkit.parse(project_config.read_text(encoding="utf-8"))
     project = cast(Table, project_toml["project"])
