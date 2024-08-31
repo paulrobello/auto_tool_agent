@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
+import datetime
 from dataclasses import dataclass
 from typing import Optional
-from uuid import uuid4
-
-from argparse import Namespace
 
 
 @dataclass
@@ -14,13 +12,15 @@ class Session:
     """Session"""
 
     id: str
-    opts: Namespace
 
     def __init__(
         self,
         id: Optional[str] = None,  # pylint: disable=redefined-builtin
     ) -> None:
-        self.id = id or str(uuid4())
+        # self.id = id or str(uuid4())
+        self.id = id or datetime.datetime.now(datetime.timezone.utc).strftime(
+            "%Y%m%d%H%M%S"
+        )
 
 
-session = Session(id="tools_tests")
+session = Session()

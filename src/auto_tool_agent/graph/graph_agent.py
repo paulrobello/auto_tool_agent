@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Literal, Any
 from pathlib import Path
 import simplejson as json
+from git import Repo
 
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -35,6 +36,7 @@ from auto_tool_agent.graph.graph_state import (
     FinalResultResponse,
 )
 from auto_tool_agent.lib.output_utils import csv_to_table, highlight_json
+from auto_tool_agent.lib.session import session
 from auto_tool_agent.opts import opts
 
 from auto_tool_agent.tool_data import tool_data
@@ -81,7 +83,9 @@ def has_needed_tools(state: GraphState) -> Literal["plan_project", "get_results"
 def get_results(state: GraphState):
     """Use tools to get results."""
     console.log("[bold green]Getting results...")
-
+    repo = Repo(state["sandbox_dir"])
+    repo.index.add(repo.untracked_files)
+    repo.index.commit(f"Session: {session.id} - Request: " + state["user_request"])
     if opts.verbose > 1:
         agent_log.info("needed_tools: %s", state["needed_tools"])
         agent_log.info("ai_tools: %s", tool_data)
@@ -96,6 +100,7 @@ def get_results(state: GraphState):
 Your job is get the requested information using the tools provided.
 You must follow all instructions below:
 * Use tools available to you.
+* Return all information provided by the tools.
 * Do not make up information.
 * If a tool returns an error, return the tool name and the error message
 * Return the results in the following JSON format. Do not include markdown or formatting such as ```json:
@@ -120,7 +125,10 @@ You must follow all instructions below:
         {"run_name": "Get Results"}
     )
     agent_executor = AgentExecutor(
-        agent=agent, tools=tools, verbose=False  # pyright: ignore [reportArgumentType]
+        agent=agent,
+        tools=tools,
+        verbose=False,
+        return_intermediate_steps=True,  # pyright: ignore [reportArgumentType]
     )
     ret = agent_executor.invoke(
         {
@@ -129,6 +137,9 @@ You must follow all instructions below:
             "bad_tools": "\n".join(tool_data.bad_tools[:1]),
         }
     )
+    # for step in ret["intermediate_steps"]:
+    #     (tool, tool_return) = step
+    #     console.print(f"[bold green]Tool: {tool.tool}[/bold green]\n", tool_return)
     output = ret["output"]
     # agent_log.info("output: ============\n%s\n===========", output)
     if isinstance(output, str):
@@ -237,7 +248,7 @@ def run_graph():
     )
     final_state = app.invoke(
         initial_state,
-        config={"configurable": {"thread_id": 42}},
+        config={"configurable": {"thread_id": session.id}},
     )
     if opts.verbose > 2:
         print(final_state)

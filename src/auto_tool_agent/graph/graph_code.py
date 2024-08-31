@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+from git import Repo
+
 from langchain_core.language_models import BaseChatModel
 
 from auto_tool_agent.graph.graph_sandbox import sync_venv
@@ -18,6 +20,7 @@ from auto_tool_agent.graph.graph_state import (
     DependenciesNeededResponse,
     CodeReviewResponse,
 )
+from auto_tool_agent.lib.session import session
 from auto_tool_agent.opts import opts
 
 CODE_RULES = """
@@ -103,6 +106,7 @@ def load_function_code(state: GraphState, tool_name: str) -> str:
 
 def review_tools(state: GraphState):
     """Ensure that the tool is correct."""
+    repo = Repo(state["sandbox_dir"])
 
     system_prompt = f"""
 # You are a Python code review expert.
@@ -151,6 +155,10 @@ Below are the rules for the code:
                     / (tool_def.name + ".py")
                 )
                 tool_file.write_text(result.updated_tool_code, encoding="utf-8")
+                repo.index.add(repo.untracked_files)
+                repo.index.commit(
+                    f"Session: {session.id} - Revised Tool: {tool_def.name}\n{result.tool_issues}"
+                )
                 console.log(f"[bold green]Tool corrected: [bold yellow]{tool_def.name}")
             else:
                 console.log(
@@ -185,6 +193,8 @@ def sync_deps_if_needed(state: GraphState) -> bool:
 
 def build_tool(state: GraphState):
     """Build the tool."""
+    repo = Repo(state["sandbox_dir"])
+
     needed_tools = state["needed_tools"]
     for tool_def in needed_tools:
         if not tool_def.existing:
@@ -197,12 +207,15 @@ def build_tool(state: GraphState):
             tool_file.write_text(code, encoding="utf-8")
             tool_def.existing = True
             tool_def.needs_review = True
+            repo.index.add(repo.untracked_files)
+            repo.index.commit(f"Session: {session.id} - New Tool: {tool_def.name}")
     extra_calls = []
     if sync_deps_if_needed(state):
         if opts.verbose > 1:
             agent_log.info("Updated dependencies: %s", state["dependencies"])
         extra_calls.append("sync_venv")
     save_state(state)
+
     return {
         "needed_tools": needed_tools,
         "dependencies": state["dependencies"],
