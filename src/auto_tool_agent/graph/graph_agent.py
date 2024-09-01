@@ -114,7 +114,7 @@ def get_results(state: GraphState):
 Your job is get the requested information using the tools provided.
 You must follow all instructions below:
 * Use tools available to you.
-* Return all information provided by the tools.
+* Return all information provided by the tools unless asked otherwise.
 * Do not make up information.
 * If a tool returns an error, return the tool name and the error message
 * Return the results in the following JSON format. Do not include markdown or formatting such as ```json:
@@ -155,11 +155,15 @@ You must follow all instructions below:
     #     (tool, tool_return) = step
     #     console.print(f"[bold green]Tool: {tool.tool}[/bold green]\n", tool_return)
     output = ret["output"]
-    # agent_log.info("output: ============\n%s\n===========", output)
-    if isinstance(output, str):
-        final_result_response = FinalResultResponse.model_validate_json(output)
-    else:
-        final_result_response = FinalResultResponse.model_validate(output)
+    # console.log("output: ============\n", output)
+    try:
+        if isinstance(output, str):
+            final_result_response = FinalResultResponse.model_validate_json(output)
+        else:
+            final_result_response = FinalResultResponse.model_validate(output)
+    except Exception as _:  # pylint: disable=broad-except
+        # TODO dump output for user intervention
+        final_result_response = FinalResultResponse(final_result=output)
     return {
         "call_stack": ["get_results"],
         "final_result": final_result_response,

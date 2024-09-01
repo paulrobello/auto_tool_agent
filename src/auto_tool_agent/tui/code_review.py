@@ -6,7 +6,7 @@ from typing import Literal
 
 from textual import on
 from textual.app import App, ComposeResult
-from textual.containers import VerticalScroll, Horizontal
+from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
 from textual.widgets import (
     Header,
@@ -37,16 +37,16 @@ class MainScreen(Screen[None]):
                 margin-right: 1;
             }
         }
-        VerticalScroll{
+        Vertical{
             width: 1fr;
             height: 1fr;
             #DepsEditor{
                 width: 1fr;
-                height: 10;
+                height: 8;
             }
             #CodeEditor{
                 width: 1fr;
-                height: 3fr;
+                height: 1fr;
             }
         }
     }
@@ -55,7 +55,7 @@ class MainScreen(Screen[None]):
     def __init__(self, tool_def: ToolDescription) -> None:
         """Initialise the screen."""
         super().__init__()
-        self.title = "Code Review"
+        self.title = f"Code Review - {tool_def.name}"
         self.tool_def = tool_def
         self.updated = False
 
@@ -64,24 +64,27 @@ class MainScreen(Screen[None]):
         yield Header()
         yield Footer()
         with self.prevent(TextArea.Changed, Checkbox.Changed):
-            with Horizontal(id="tool_bar"):
-                yield Button("Accept", id="Accept")
-                yield Button("Reject", id="Reject")
-                yield Checkbox(
-                    "Needs Review", id="NeedsReview", value=self.tool_def.needs_review
-                )
-            with VerticalScroll():
+            with Vertical():
+                with Horizontal(id="tool_bar"):
+                    yield Button("Accept", id="Accept")
+                    yield Button("Reject", id="Reject")
+                    yield Checkbox(
+                        "Needs Review",
+                        id="NeedsReview",
+                        value=self.tool_def.needs_review,
+                    )
+
                 yield TextArea.code_editor(
                     "\n".join(self.tool_def.dependencies),
                     id="DepsEditor",
                     read_only=False,
                 )
-        yield TextArea.code_editor(
-            self.tool_def.code,
-            id="CodeEditor",
-            language="python",
-            read_only=False,
-        )
+                yield TextArea.code_editor(
+                    self.tool_def.code,
+                    id="CodeEditor",
+                    language="python",
+                    read_only=False,
+                )
         self.updated = False
 
     @on(Button.Pressed, "#Accept")
