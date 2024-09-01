@@ -10,6 +10,7 @@ from langchain_core.language_models import BaseChatModel
 from auto_tool_agent.app_logging import console
 from auto_tool_agent.graph.graph_shared import build_chat_model
 from auto_tool_agent.graph.graph_state import GraphState, ToolNeededResponse
+from auto_tool_agent.opts import opts
 from auto_tool_agent.tool_data import tool_data
 
 
@@ -85,6 +86,14 @@ You must follow all instructions below:
             ),
         ]
     )  # type: ignore
+    for tool_def in result.needed_tools:
+        tool_def.load_metadata()
+        if opts.review_tools:
+            if not tool_def.needs_review:
+                console.log(
+                    f"[bold green]Forcing review of tool:[bold yellow] {tool_def.name}"
+                )
+            tool_def.needs_review = True
     return {
         "call_stack": ["plan_project"],
         "needed_tools": result.needed_tools,

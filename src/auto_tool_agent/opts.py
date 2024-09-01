@@ -63,7 +63,7 @@ def parse_args():
     )
 
     parser.add_argument(
-        "-m",
+        "-n",
         "--model-name",
         dest="model_name",
         type=str,
@@ -80,10 +80,18 @@ def parse_args():
 
     parser.add_argument(
         "-i",
+        "--interactive",
+        dest="interactive",
+        action="store_true",
+        help="Prompt user at various stages for feedback.",
+    )
+
+    parser.add_argument(
+        "-m",
         "--max_iterations",
         dest="max_iterations",
         type=int,
-        default=5,
+        default=25,
         help="The maximum number of iterations to run before stopping.",
     )
 
@@ -142,6 +150,21 @@ def parse_args():
         dest="generate_graph",
         action="store_true",
         help="Generate only graph diagram and exit.",
+    )
+
+    parser.add_argument(
+        "-r",
+        "--review-tools",
+        dest="review_tools",
+        action="store_true",
+        help="Re-review tools before running.",
+    )
+
+    parser.add_argument(
+        "-b",
+        "--branch",
+        type=str,
+        help="Create or checkout a branch before running.",
     )
 
     args = parser.parse_args()

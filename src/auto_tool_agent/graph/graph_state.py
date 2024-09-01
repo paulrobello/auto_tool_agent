@@ -53,10 +53,37 @@ class ToolDescription(BaseModel):
             return True
         return False
 
+    def load_metadata(self) -> None:
+        """Load the tool metadata."""
+        if not self.metadata_path.exists():
+            return
+        meta = ToolDescription.model_validate_json(
+            self.metadata_path.read_text(encoding="utf-8")
+        )
+        self.dependencies = meta.dependencies
+        self.code = meta.code
+        self.existing = True
+        self.needs_review = False
+
     def save_metadata(self) -> None:
         """Save the tool metadata."""
         (Path(opts.sandbox_dir) / "src" / "metadata").mkdir(parents=True, exist_ok=True)
         self.metadata_path.write_text(self.model_dump_json(indent=2), encoding="utf-8")
+
+    def save_all(self) -> None:
+        """Save the tool."""
+        self.save_code()
+        self.save_metadata()
+
+    def delete(self):
+        """Delete the tool."""
+        self.tool_path.unlink(missing_ok=True)
+        self.metadata_path.unlink(missing_ok=True)
+        self.code = ""
+        self.dependencies = []
+
+        self.existing = False
+        self.needs_review = False
 
 
 class CodeReviewResponse(BaseModel):

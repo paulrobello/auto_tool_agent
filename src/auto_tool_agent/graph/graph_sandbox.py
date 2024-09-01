@@ -136,8 +136,26 @@ def sync_venv(state: GraphState):
         console.log("[bold green]Initializing git...")
         repo = Repo.init(state["sandbox_dir"])  # type: ignore
         repo.index.add(repo.untracked_files)
+
         repo.index.commit("Initial commit")
 
+    leftovers = repo.untracked_files + [item.a_path for item in repo.index.diff(None)]
+    if len(leftovers) > 0:
+        console.log("[bold green]Commiting leftovers from last run...")
+        repo.index.add(leftovers)
+        repo.index.commit("Adding leftovers from last run")
+
+    if opts.branch:
+        if opts.branch in [head.name for head in repo.heads]:
+            console.log(f"[bold green]Checking out branch '{opts.branch}'...")
+            repo.git.checkout(opts.branch)
+        else:
+            console.log(f"[bold green]Creating branch '{opts.branch}'...")
+            repo.git.checkout("main")
+            repo.git.checkout("HEAD", b=opts.branch)
+    else:
+        console.log("[bold green]Checking out main...")
+        repo.git.checkout("main")
     return {
         "call_stack": ["sync_venv"],
         "sandbox_dir": sandbox_dir,

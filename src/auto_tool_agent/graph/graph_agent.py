@@ -60,10 +60,16 @@ def is_tool_needed(state: GraphState) -> Literal["build_tool", "get_results_pre_
     return "get_results_pre_check"
 
 
-def get_results_pre_check(_: GraphState):
+def get_results_pre_check(state: GraphState):
     """Check if a tool is needed."""
-    console.log("[bold green]Ensuring needed tools are available...")
-    return {"call_stack": ["get_results_pre_check"]}
+    console.log(
+        f"[bold green]Ensuring needed tools are available: [bold yellow]{[tool.name for tool in state['needed_tools']]}"
+    )
+    sync_deps_if_needed(state)
+    return {
+        "call_stack": ["get_results_pre_check"],
+        "dependencies": state["dependencies"],
+    }
 
 
 def has_needed_tools(
@@ -256,7 +262,12 @@ def run_graph():
     )
     final_state = app.invoke(
         initial_state,
-        config={"configurable": {"thread_id": session.id}},
+        config={
+            "configurable": {
+                "thread_id": session.id,
+                "recursion_limit": opts.max_iterations,
+            }
+        },
     )
     if opts.verbose > 2:
         print(final_state)

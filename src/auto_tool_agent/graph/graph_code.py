@@ -24,6 +24,7 @@ from auto_tool_agent.graph.graph_state import (
 from auto_tool_agent.lib.output_utils import show_diff
 from auto_tool_agent.lib.session import session
 from auto_tool_agent.opts import opts
+from auto_tool_agent.tui.code_review import CodeReviewApp
 
 CODE_RULES = """
 * Code must be well formatted, have typed arguments and have a doc string in the function body describing it and its arguments.
@@ -116,7 +117,6 @@ Below are the rules for the code:
 * If you update a tool ensure you follow these instructions:
     * Write it in Python following the above rules for code.
     * Ensure that it implements the functionality described in the doc string.
-    * Only output the code. Do not include any other markdown or formatting.
     * Do not output markdown tags such as "```" or "```python"
 """
     model: BaseChatModel = build_chat_model(temperature=0.25)
@@ -124,12 +124,20 @@ Below are the rules for the code:
     any_updated: bool = False
     for tool_def in state["needed_tools"]:
         if tool_def.needs_review:
-            console.log(f"[bold green]Reviewing tool: [bold yellow]{tool_def.name}")
-
             if not tool_def.code:
                 tool_def.load_code()
-
             tool_def.existing = True
+
+            if opts.interactive:
+                user_review = CodeReviewApp(tool_def).run()
+                if user_review == "Accept":
+                    any_updated = True
+                elif user_review == "Reject":
+                    continue
+                if not tool_def.needs_review:
+                    continue
+            console.log(f"[bold green]Reviewing tool: [bold yellow]{tool_def.name}")
+
             tool_def.needs_review = False
 
             result: CodeReviewResponse = structure_model.with_config(
@@ -192,6 +200,7 @@ def sync_deps_if_needed(state: GraphState) -> bool:
     needed_deps = set(build_deps_list(state))
     if current_deps != needed_deps:
         console.log("[bold green]Dependencies changed...")
+        state["dependencies"] = list(needed_deps)
         sync_venv(state)
         return True
     return False
