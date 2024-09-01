@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import git
 from git import Repo
 
 from langchain_core.language_models import BaseChatModel
@@ -38,11 +37,9 @@ CODE_RULES = """
 """
 
 
-def code_tool(tool_desc: ToolDescription) -> str:
+def code_tool(tool_desc: ToolDescription) -> None:
     """Code the tool."""
     console.log(f"[bold green]Creating tool: [bold yellow]{tool_desc.name}")
-    if opts.verbose > 1:
-        agent_log.info("Code tool... %s", tool_desc.name)
     model = build_chat_model()
 
     system_prompt = f"""
@@ -65,8 +62,9 @@ Tool_Description: {tool_desc.description}
             ),
         ]
     )
+    tool_desc.code = str(code_result.content)
     if opts.verbose > 1:
-        agent_log.info("Tool code: %s", code_result.content)
+        console.log("Tool code:", code_result.content)
 
     console.log(
         f"[bold green]Evaluating dependencies for tool: [bold yellow]{tool_desc.name}"
@@ -98,8 +96,6 @@ Tool_Description: {tool_desc.description}
     deps_result.dependencies.sort()
     tool_desc.dependencies = deps_result.dependencies
 
-    return str(code_result.content)
-
 
 def load_function_code(state: GraphState, tool_name: str) -> str:
     """Load function code."""
@@ -129,7 +125,13 @@ Below are the rules for the code:
     for tool_def in state["needed_tools"]:
         if tool_def.needs_review:
             console.log(f"[bold green]Reviewing tool: [bold yellow]{tool_def.name}")
+
+            if not tool_def.code:
+                tool_def.load_code()
+
+            tool_def.existing = True
             tool_def.needs_review = False
+
             result: CodeReviewResponse = structure_model.with_config(
                 {"run_name": "Review Tool"}
             ).invoke(
@@ -138,29 +140,28 @@ Below are the rules for the code:
                     (
                         "user",
                         f"""
-{load_function_code(state, tool_def.name)}
+{tool_def.code}
 """,
                     ),
                 ]
             )  # type: ignore
-            if opts.verbose > 1:
-                agent_log.info("Review result: %s", result)
+
             if result.tool_updated and result.updated_tool_code:
-                tool_def.needs_review = True
                 console.log(
                     f"[bold red]Tool review did not pass: [bold yellow]{tool_def.name}"
                 )
                 console.log(f"[bold red]{result.tool_issues}")
+
                 any_updated = True
-                tool_file = (
-                    Path(state["sandbox_dir"])
-                    / "src"
-                    / "sandbox"
-                    / (tool_def.name + ".py")
-                )
-                tool_file.write_text(result.updated_tool_code, encoding="utf-8")
-                console.log(show_diff(repo, tool_file))
-                repo.index.add(repo.untracked_files)
+
+                tool_def.needs_review = True
+                tool_def.code = result.updated_tool_code
+                tool_def.save_code()
+                tool_def.save_metadata()
+
+                console.log(show_diff(repo, tool_def.tool_path))
+                repo.index.add([tool_def.tool_path, tool_def.metadata_path])
+
                 repo.index.commit(
                     f"Session: {session.id} - Revised Tool: {tool_def.name}\n{result.tool_issues}"
                 )
@@ -205,14 +206,12 @@ def build_tool(state: GraphState):
         if not tool_def.existing:
             if opts.verbose > 1:
                 agent_log.info("Building tool... %s", tool_def.name)
-            code = code_tool(tool_def)
-            tool_file = (
-                Path(state["sandbox_dir"]) / "src" / "sandbox" / (tool_def.name + ".py")
-            )
-            tool_file.write_text(code, encoding="utf-8")
+            code_tool(tool_def)
             tool_def.existing = True
             tool_def.needs_review = True
-            repo.index.add(repo.untracked_files)
+            tool_def.save_code()
+            tool_def.save_metadata()
+            repo.index.add([tool_def.tool_path, tool_def.metadata_path])
             repo.index.commit(f"Session: {session.id} - New Tool: {tool_def.name}")
     extra_calls = []
     if sync_deps_if_needed(state):

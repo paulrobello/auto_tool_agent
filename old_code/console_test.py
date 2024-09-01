@@ -15,10 +15,12 @@ else:
     repo = Repo.init(working_tree_dir)
 
 modified_files = [item.a_path for item in repo.index.diff(None)]
-# console.log(repo.untracked_files)
-console.log(modified_files)
+console.log("untracked files", repo.untracked_files)
+repo.index.add(repo.untracked_files)
+console.log("modified files", modified_files)
 if modified_files:
     diff_index = repo.index.diff(None, modified_files[0], create_patch=True)
+    console.log("number of changes", len(diff_index))
     for change in diff_index:
         if isinstance(change.diff, bytes):
             diff = change.diff.decode("utf-8", errors="replace")

@@ -54,11 +54,12 @@ def highlight_json_file(json_file: str) -> Syntax:
 
 def show_diff(repo: Repo, file_path: Path) -> Syntax:
     """Get dif with syntax high."""
+    ret = ""
     diff_index = repo.index.diff(None, file_path, create_patch=True)
     for change in diff_index:
         if isinstance(change.diff, bytes):
             diff = change.diff.decode("utf-8", errors="replace")
         else:
             diff = str(change.diff)
-        diff = diff.replace("\n", "\n")
-        return Syntax(diff, "diff")
+        ret += diff.replace("\n", "\n") + "\n\n"
+    return Syntax(ret, "diff")

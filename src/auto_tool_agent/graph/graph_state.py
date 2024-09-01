@@ -1,10 +1,13 @@
 """State for the graph"""
 
 from __future__ import annotations
+
 from pathlib import Path
 
 from typing import TypedDict, Annotated, List, Optional, Any
 from pydantic import BaseModel, Field
+
+from auto_tool_agent.opts import opts
 
 
 class ToolDescription(BaseModel):
@@ -16,6 +19,7 @@ class ToolDescription(BaseModel):
     description: str = Field(
         description="Detailed description of the tool and its parameters."
     )
+    code: str = Field(description="Code for the tool.", default="")
     dependencies: list[str] = Field(
         description="List of 3rd party pyton packages required to run this tool.",
         default_factory=list,
@@ -26,6 +30,33 @@ class ToolDescription(BaseModel):
     needs_review: bool = Field(
         description="Set to True if this tool needs review or False if it does not need review."
     )
+
+    @property
+    def tool_path(self) -> Path:
+        """Get the path to the tool."""
+        return Path(opts.sandbox_dir) / "src" / "sandbox" / (self.name + ".py")
+
+    @property
+    def metadata_path(self) -> Path:
+        """Get the path to the tool."""
+        return Path(opts.sandbox_dir) / "src" / "metadata" / (self.name + ".json")
+
+    def save_code(self) -> None:
+        """Save the tool."""
+        self.tool_path.write_text(self.code, encoding="utf-8")
+
+    def load_code(self) -> bool:
+        """Load the tool code."""
+        tool_path = self.tool_path
+        if tool_path.exists():
+            self.code = tool_path.read_text(encoding="utf-8")
+            return True
+        return False
+
+    def save_metadata(self) -> None:
+        """Save the tool metadata."""
+        (Path(opts.sandbox_dir) / "src" / "metadata").mkdir(parents=True, exist_ok=True)
+        self.metadata_path.write_text(self.model_dump_json(indent=2), encoding="utf-8")
 
 
 class CodeReviewResponse(BaseModel):
