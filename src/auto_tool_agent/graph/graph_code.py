@@ -22,6 +22,7 @@ from auto_tool_agent.graph.graph_state import (
     DependenciesNeededResponse,
     CodeReviewResponse,
 )
+from auto_tool_agent.lib.output_utils import show_diff
 from auto_tool_agent.lib.session import session
 from auto_tool_agent.opts import opts
 
@@ -158,10 +159,7 @@ Below are the rules for the code:
                     / (tool_def.name + ".py")
                 )
                 tool_file.write_text(result.updated_tool_code, encoding="utf-8")
-                diff_index = repo.index.diff(
-                    git.diff.DiffConstants.INDEX, repo.untracked_files[0]
-                )
-                console.log(diff_index)
+                console.log(show_diff(repo, tool_file))
                 repo.index.add(repo.untracked_files)
                 repo.index.commit(
                     f"Session: {session.id} - Revised Tool: {tool_def.name}\n{result.tool_issues}"

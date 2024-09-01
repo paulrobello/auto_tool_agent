@@ -5,8 +5,10 @@ from __future__ import annotations
 import csv
 import io
 import os.path
+from pathlib import Path
 from typing import Optional
 
+from git import Repo
 from rich.syntax import Syntax
 from rich.table import Table
 
@@ -48,3 +50,15 @@ def highlight_json_file(json_file: str) -> Syntax:
     with open(json_file, "rt", encoding="utf-8", newline="") as data_file:
         data = data_file.read().strip()
     return highlight_json(data)
+
+
+def show_diff(repo: Repo, file_path: Path) -> Syntax:
+    """Get dif with syntax high."""
+    diff_index = repo.index.diff(None, file_path, create_patch=True)
+    for change in diff_index:
+        if isinstance(change.diff, bytes):
+            diff = change.diff.decode("utf-8", errors="replace")
+        else:
+            diff = str(change.diff)
+        diff = diff.replace("\n", "\n")
+        return Syntax(diff, "diff")
