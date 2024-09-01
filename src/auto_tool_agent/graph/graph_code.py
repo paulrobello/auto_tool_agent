@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+
+import git
 from git import Repo
 
 from langchain_core.language_models import BaseChatModel
@@ -156,6 +158,10 @@ Below are the rules for the code:
                     / (tool_def.name + ".py")
                 )
                 tool_file.write_text(result.updated_tool_code, encoding="utf-8")
+                diff_index = repo.index.diff(
+                    git.diff.DiffConstants.INDEX, repo.untracked_files[0]
+                )
+                console.log(diff_index)
                 repo.index.add(repo.untracked_files)
                 repo.index.commit(
                     f"Session: {session.id} - Revised Tool: {tool_def.name}\n{result.tool_issues}"
