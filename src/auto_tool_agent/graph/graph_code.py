@@ -143,6 +143,7 @@ Below are the rules for the code:
             if opts.verbose > 1:
                 agent_log.info("Review result: %s", result)
             if result.tool_updated and result.updated_tool_code:
+                tool_def.needs_review = True
                 console.log(
                     f"[bold red]Tool review did not pass: [bold yellow]{tool_def.name}"
                 )

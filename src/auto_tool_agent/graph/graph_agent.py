@@ -66,10 +66,18 @@ def get_results_pre_check(_: GraphState):
     return {"call_stack": ["get_results_pre_check"]}
 
 
-def has_needed_tools(state: GraphState) -> Literal["plan_project", "get_results"]:
+def has_needed_tools(
+    state: GraphState,
+) -> Literal["plan_project", "get_results", "review_tools"]:
     """Check if a tool is needed."""
     load_existing_tools(state)
     needed_tools = state["needed_tools"]
+    for tool_def in needed_tools:
+        if tool_def.needs_review:
+            console.log(
+                f"[bold green]Tool needs review: [bold yellow]{tool_def.name}. [/bold yellow]Reviewing..."
+            )
+            return "review_tools"
     for tool_def in needed_tools:
         if tool_def.name not in tool_data.ai_tools:
             console.log(
