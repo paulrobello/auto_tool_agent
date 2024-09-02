@@ -125,7 +125,6 @@ def sync_venv(state: GraphState):
                 agent_log.error(result)
                 raise ValueError("Failed to remove dependencies from project config.")
 
-    load_existing_tools(state)
     shutil.copytree(Path("./sandbox_init"), sandbox_dir, dirs_exist_ok=True)
 
     if (state["sandbox_dir"] / ".git").exists():
@@ -157,6 +156,9 @@ def sync_venv(state: GraphState):
     else:
         console.log("[bold green]Checking out main...")
         repo.git.checkout("main")
+
+    load_existing_tools(state)
+
     return {
         "call_stack": ["sync_venv"],
         "sandbox_dir": sandbox_dir,

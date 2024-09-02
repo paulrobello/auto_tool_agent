@@ -250,13 +250,14 @@ def run_graph():
         "dependencies": old_state.get(
             "dependencies",
             [
-                "requests",
-                "rich",
                 "asyncio",
                 "langchain",
                 "langchain-core",
-                "pytest",
-                "moto[all]",
+                "mardownify",
+                "pydantic",
+                "pydantic-core",
+                "requests",
+                "rich",
             ],
         ),
         "user_request": opts.user_request,

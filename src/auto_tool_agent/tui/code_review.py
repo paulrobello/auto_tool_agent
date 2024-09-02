@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, Optional
 import pyperclip  # type: ignore
 
 from textual import on
@@ -15,7 +15,7 @@ from textual.widgets import Header, Footer, TextArea, Button, Checkbox, Input, S
 from textual.widget import Widget
 from textual.message import Message
 
-from auto_tool_agent.graph.graph_state import ToolDescription
+from auto_tool_agent.graph.graph_state import ToolDescription, CodeReviewResponse
 from auto_tool_agent.tui.dialogs.yes_no_dialog import YesNoDialog
 
 UserResponse = Literal["Accept", "Reject", "Abort", "AI Review"]
@@ -51,6 +51,10 @@ class MainScreen(Screen[None]):
         Vertical{
             width: 1fr;
             height: 1fr;
+            #AIReview{
+                width: 1fr;
+                height: 8;
+            }
             #DepsEditor{
                 width: 1fr;
                 height: 8;
@@ -63,11 +67,14 @@ class MainScreen(Screen[None]):
     }
     """
 
-    def __init__(self, tool_def: ToolDescription) -> None:
+    def __init__(
+        self, tool_def: ToolDescription, ai_review: Optional[CodeReviewResponse]
+    ) -> None:
         """Initialise the screen."""
         super().__init__()
         self.title = f"Code Review - {tool_def.name}"
         self.tool_def = tool_def
+        self.ai_review = ai_review
         self.updated = False
 
     def compose(self) -> ComposeResult:
@@ -85,14 +92,19 @@ class MainScreen(Screen[None]):
                         id="NeedsReview",
                         value=self.tool_def.needs_review,
                     )
-
+                if self.ai_review:
+                    yield TextArea(
+                        self.ai_review.tool_issues,
+                        id="AIReview",
+                        read_only=True,
+                    )
                 yield TextArea.code_editor(
                     "\n".join(self.tool_def.dependencies),
                     id="DepsEditor",
                     read_only=False,
                 )
                 yield TextArea.code_editor(
-                    self.tool_def.code,
+                    self.tool_def.code.strip() + "\n",
                     id="CodeEditor",
                     language="python",
                     read_only=False,
@@ -108,24 +120,24 @@ class MainScreen(Screen[None]):
                     "Code Modified",
                     "Save changes?",
                 ),
-                self.confirm_save_response,  # type: ignore
+                self.confirm_save_response,
             )
         self.app.exit("Accept")
 
-    async def confirm_save_response(self, res: bool) -> None:
+    def confirm_save_response(self, res: Optional[bool]) -> None:
         """Save code"""
         if not res:
             return
         self.tool_def.existing = True
         self.tool_def.needs_review = self.query_one(Checkbox).value
-        self.tool_def.code = self.query_one("#CodeEditor", TextArea).text.strip()
+        self.tool_def.code = self.query_one("#CodeEditor", TextArea).text.strip() + "\n"
         self.tool_def.dependencies = (
             self.query_one("#DepsEditor", TextArea).text.strip().split("\n")
         )
         self.tool_def.save_code()
         self.tool_def.save_metadata()
 
-    async def confirm_reject_response(self, res: bool) -> None:
+    def confirm_reject_response(self, res: Optional[bool]) -> None:
         """Delete tool"""
         if not res:
             return
@@ -140,7 +152,7 @@ class MainScreen(Screen[None]):
                 "Reject Tool",
                 "Delete tool and return to planner?",
             ),
-            self.confirm_reject_response,  # type: ignore
+            self.confirm_reject_response,
         )
 
     @on(Button.Pressed, "#Abort")
@@ -166,10 +178,12 @@ class CodeReviewApp(App[UserResponse]):
         Binding(key="ctrl+c", action="noop", show=False),
     ]
 
-    def __init__(self, tool_def: ToolDescription) -> None:
+    def __init__(
+        self, tool_def: ToolDescription, ai_review: Optional[CodeReviewResponse] = None
+    ) -> None:
         """Initialise the app."""
         super().__init__()
-        self.main_screen = MainScreen(tool_def)
+        self.main_screen = MainScreen(tool_def, ai_review)
 
     async def on_mount(self) -> None:
         """Mount the screen."""
@@ -177,7 +191,6 @@ class CodeReviewApp(App[UserResponse]):
 
     def action_noop(self) -> None:
         """Do nothing"""
-        pass
 
     def action_copy_to_clipboard(self) -> None:
         """Copy focused widget value to clipboard"""

@@ -9,7 +9,7 @@ from langchain_core.language_models import BaseChatModel
 
 from auto_tool_agent.app_logging import console
 from auto_tool_agent.graph.graph_shared import build_chat_model
-from auto_tool_agent.graph.graph_state import GraphState, ToolNeededResponse
+from auto_tool_agent.graph.graph_state import GraphState, PlanProjectResponse
 from auto_tool_agent.opts import opts
 from auto_tool_agent.tool_data import tool_data
 
@@ -61,7 +61,7 @@ Your job is to examine the users request and determine what tools will be needed
 You must follow all instructions below:
 * Examine the list of available tools and if they are relevant to the users request include them in the needed_tools list.
 * Existing tools should have the existing field set to True.
-* Do not call the tools only examine if the existing tools are needed to fulfill the users request.
+* Reason how each tool is relevant to the users request and in what order they should be used.
 * If additional tools are needed follow the instructions below:
     * Give the new tools a name that is a valid Python identifier in snake_case
     * Provide a detailed description
@@ -70,9 +70,12 @@ You must follow all instructions below:
     * Dependencies will be filled in later do not include them.
     """
     model: BaseChatModel = build_chat_model(temperature=0.5)
-    structure_model = model.with_structured_output(ToolNeededResponse)
-
-    result: ToolNeededResponse = structure_model.with_config(
+    structure_model = model.with_structured_output(PlanProjectResponse)
+    console.log(
+        "[bold green]All available tools: [bold yellow]",
+        list(tool_data.ai_tools.keys()),
+    )
+    result: PlanProjectResponse = structure_model.with_config(
         {"run_name": "Project Planner"}
     ).invoke(
         [
@@ -94,6 +97,17 @@ You must follow all instructions below:
                     f"[bold green]Forcing review of tool:[bold yellow] {tool_def.name}"
                 )
             tool_def.needs_review = True
+    console.log("[bold green]Plan Steps:")
+    for i, step in enumerate(result.steps):
+        console.log(f"{i} - {step}")
+    if opts.interactive:
+        response = console.input(
+            "[bold green]Accept plan? [bold yellow][Y]/n [bold green]: \n"
+        )
+        console.log("response", response)
+        if response != "" and response.lower() != "y":
+            console.log("[bold red]Plan rejected. Aborting....")
+            raise ValueError("Plan rejected.")
     return {
         "call_stack": ["plan_project"],
         "needed_tools": result.needed_tools,

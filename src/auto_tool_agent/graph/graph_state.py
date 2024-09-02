@@ -101,10 +101,17 @@ class CodeReviewResponse(BaseModel):
     updated_tool_code: str = Field(description="Updated tool code.")
 
 
-class ToolNeededResponse(BaseModel):
+class PlanProjectResponse(BaseModel):
     """Tool needed response."""
 
-    needed_tools: List[ToolDescription]
+    steps: List[str] = Field(
+        description="List of steps to accomplish the project.",
+        default_factory=list,
+    )
+    needed_tools: List[ToolDescription] = Field(
+        description="List of needed tools.",
+        default_factory=list,
+    )
 
 
 class DependenciesNeededResponse(BaseModel):

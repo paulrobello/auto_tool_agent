@@ -29,12 +29,12 @@ from auto_tool_agent.tui.code_review import CodeReviewApp
 
 CODE_RULES = """
 * Code must be well formatted, have typed arguments and have a doc string in the function body describing it and its arguments.
-* If the return type is something other than a string, it should have a return type of Union[str, THE_TYPE].
+* A tools return type should be Union[str, Dict["result": THE_TYPE]].
 * Code must use "except Exception as error:" to catch all exceptions and return the error message as a string.
 * Tool must be annotated with "@tool" from langchain_core.tools import tool.
 * There should be only one function that has the @tool decorator.
-* Functions should be reusable by adding parameters to enable filtering or limiting the number of results.
-* Result limit parameters should default to None meaning no limit.
+* Tools should be reusable by adding parameters to configure the tool.
+* If a tool returns a list it should enable limiting the number of results, it should default to None meaning no limit.
 * Do not output markdown tags such as "```" or "```python".
 """
 
@@ -105,6 +105,7 @@ def load_function_code(state: GraphState, tool_name: str) -> str:
     return tool_path.read_text(encoding="utf-8")
 
 
+# pylint: disable=too-many-branches
 def review_tools(state: GraphState):
     """Ensure that the tool is correct."""
     repo = Repo(state["sandbox_dir"])
@@ -172,6 +173,14 @@ Below are the rules for the code:
 
                 console.log(show_diff(repo, tool_def.tool_path))
                 repo.index.add([tool_def.tool_path, tool_def.metadata_path])
+
+                user_review = CodeReviewApp(tool_def, result).run()
+                if user_review == "Accept":
+                    any_updated = True
+                elif user_review == "Reject":
+                    continue
+                elif user_review == "Abort":
+                    raise ValueError("Aborted review")
 
                 repo.index.commit(
                     f"Session: {session.id} - Revised Tool: {tool_def.name}\n{result.tool_issues}",
