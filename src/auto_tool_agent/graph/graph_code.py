@@ -13,6 +13,7 @@ from auto_tool_agent.graph.graph_shared import (
     build_chat_model,
     save_state,
     load_existing_tools,
+    git_actor,
 )
 from auto_tool_agent.app_logging import agent_log, console
 from auto_tool_agent.graph.graph_state import (
@@ -134,6 +135,8 @@ Below are the rules for the code:
                     any_updated = True
                 elif user_review == "Reject":
                     continue
+                elif user_review == "Abort":
+                    raise ValueError("Aborted review")
                 if not tool_def.needs_review:
                     continue
             console.log(f"[bold green]Reviewing tool: [bold yellow]{tool_def.name}")
@@ -171,7 +174,9 @@ Below are the rules for the code:
                 repo.index.add([tool_def.tool_path, tool_def.metadata_path])
 
                 repo.index.commit(
-                    f"Session: {session.id} - Revised Tool: {tool_def.name}\n{result.tool_issues}"
+                    f"Session: {session.id} - Revised Tool: {tool_def.name}\n{result.tool_issues}",
+                    author=git_actor,
+                    committer=git_actor,
                 )
                 console.log(f"[bold green]Tool corrected: [bold yellow]{tool_def.name}")
             else:
@@ -221,7 +226,11 @@ def build_tool(state: GraphState):
             tool_def.save_code()
             tool_def.save_metadata()
             repo.index.add([tool_def.tool_path, tool_def.metadata_path])
-            repo.index.commit(f"Session: {session.id} - New Tool: {tool_def.name}")
+            repo.index.commit(
+                f"Session: {session.id} - New Tool: {tool_def.name}",
+                author=git_actor,
+                committer=git_actor,
+            )
     extra_calls = []
     if sync_deps_if_needed(state):
         if opts.verbose > 1:

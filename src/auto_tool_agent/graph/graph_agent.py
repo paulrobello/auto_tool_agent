@@ -30,6 +30,7 @@ from auto_tool_agent.graph.graph_shared import (
     build_chat_model,
     save_state,
     load_existing_tools,
+    git_actor,
 )
 from auto_tool_agent.graph.graph_state import (
     GraphState,
@@ -99,7 +100,11 @@ def get_results(state: GraphState):
     console.log("[bold green]Getting results...")
     repo = Repo(state["sandbox_dir"])
     repo.index.add(repo.untracked_files)
-    repo.index.commit(f"Session: {session.id} - Request: " + state["user_request"])
+    repo.index.commit(
+        f"Session: {session.id} - Request: " + state["user_request"],
+        author=git_actor,
+        committer=git_actor,
+    )
     if opts.verbose > 1:
         agent_log.info("needed_tools: %s", state["needed_tools"])
         agent_log.info("ai_tools: %s", tool_data)

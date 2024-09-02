@@ -23,6 +23,9 @@ class ModuleLoader(FileSystemEventHandler):
         super().__init__()
         self.folder_path = folder_path
         # the folder to watch
+
+        self.load_existing_modules(self.folder_path / "tools")
+        # load any existing modules
         self.load_existing_modules(self.folder_path)
         # load any existing modules
         self.last_loaded_modules = {}

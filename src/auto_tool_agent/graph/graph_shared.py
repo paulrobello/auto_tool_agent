@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import simplejson as json
+from git.util import Actor
 from langchain_core.language_models import BaseChatModel
 
 from auto_tool_agent.app_logging import agent_log
@@ -51,3 +52,6 @@ def load_existing_tools(state: GraphState):
     """Load existing tools."""
     ModuleLoader(state["sandbox_dir"] / "src" / "sandbox")
     # print(tool_data)
+
+
+git_actor = Actor("Auto Agent", "auto_agent@pardev.net")

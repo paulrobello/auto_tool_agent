@@ -10,7 +10,7 @@ from git import Repo
 import tomlkit
 from tomlkit.items import Table, Array
 
-from auto_tool_agent.graph.graph_shared import load_existing_tools
+from auto_tool_agent.graph.graph_shared import load_existing_tools, git_actor
 from auto_tool_agent.app_logging import agent_log, console
 from auto_tool_agent.graph.graph_state import GraphState
 from auto_tool_agent.lib.execute_command import execute_command
@@ -127,9 +127,7 @@ def sync_venv(state: GraphState):
 
     load_existing_tools(state)
     shutil.copytree(Path("./sandbox_init"), sandbox_dir, dirs_exist_ok=True)
-    # (state["sandbox_dir"] / ".gitignore").write_text(
-    #     Path("./sandbox.gitignore").read_text(encoding="utf-8")
-    # )
+
     if (state["sandbox_dir"] / ".git").exists():
         repo = Repo(state["sandbox_dir"])  # type: ignore
     else:
@@ -137,13 +135,15 @@ def sync_venv(state: GraphState):
         repo = Repo.init(state["sandbox_dir"])  # type: ignore
         repo.index.add(repo.untracked_files)
 
-        repo.index.commit("Initial commit")
+        repo.index.commit("Initial commit", author=git_actor, committer=git_actor)
 
     leftovers = repo.untracked_files + [item.a_path for item in repo.index.diff(None)]
     if len(leftovers) > 0:
         console.log("[bold green]Commiting leftovers from last run...")
         repo.index.add(leftovers)
-        repo.index.commit("Adding leftovers from last run")
+        repo.index.commit(
+            "Adding leftovers from last run", author=git_actor, committer=git_actor
+        )
 
     if opts.branch:
         if opts.branch in [head.name for head in repo.heads]:
@@ -151,7 +151,8 @@ def sync_venv(state: GraphState):
             repo.git.checkout(opts.branch)
         else:
             console.log(f"[bold green]Creating branch '{opts.branch}'...")
-            repo.git.checkout("main")
+            if "main" in [head.name for head in repo.heads]:
+                repo.git.checkout("main")
             repo.git.checkout("HEAD", b=opts.branch)
     else:
         console.log("[bold green]Checking out main...")

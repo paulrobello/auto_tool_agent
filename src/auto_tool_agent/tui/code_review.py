@@ -2,29 +2,40 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Literal
+import pyperclip  # type: ignore
 
 from textual import on
 from textual.app import App, ComposeResult
+from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
-from textual.widgets import (
-    Header,
-    Footer,
-    TextArea,
-    Button,
-    Checkbox,
-)
+from textual.widgets import Header, Footer, TextArea, Button, Checkbox, Input, Select
+from textual.widget import Widget
+from textual.message import Message
 
 from auto_tool_agent.graph.graph_state import ToolDescription
 from auto_tool_agent.tui.dialogs.yes_no_dialog import YesNoDialog
 
-UserResponse = Literal["Accept", "Reject", "AI Review"]
+UserResponse = Literal["Accept", "Reject", "Abort", "AI Review"]
+
+
+@dataclass
+class SendToClipboard(Message):
+    """Used to send a string to the clipboard."""
+
+    message: str
+    notify: bool = True
 
 
 class MainScreen(Screen[None]):
     """Main screen"""
 
+    BINDINGS = [
+        # Binding("ctrl+v", "app.paste_from_clipboard", "", show=True),
+        Binding("ctrl+c", "app.copy_to_clipboard", "", show=True),
+    ]
     DEFAULT_CSS = """
     MainScreen {
         #tool_bar {
@@ -68,6 +79,7 @@ class MainScreen(Screen[None]):
                 with Horizontal(id="tool_bar"):
                     yield Button("Accept", id="Accept")
                     yield Button("Reject", id="Reject")
+                    yield Button("Abort", id="Abort")
                     yield Checkbox(
                         "Needs Review",
                         id="NeedsReview",
@@ -131,6 +143,11 @@ class MainScreen(Screen[None]):
             self.confirm_reject_response,  # type: ignore
         )
 
+    @on(Button.Pressed, "#Abort")
+    def abort(self) -> None:
+        """Abort the application"""
+        self.app.exit("Abort")
+
     @on(TextArea.Changed)
     def textarea_changed(self) -> None:
         """Set updated flag"""
@@ -145,6 +162,10 @@ class MainScreen(Screen[None]):
 class CodeReviewApp(App[UserResponse]):
     """App to test Textual stuff"""
 
+    BINDINGS = [
+        Binding(key="ctrl+c", action="noop", show=False),
+    ]
+
     def __init__(self, tool_def: ToolDescription) -> None:
         """Initialise the app."""
         super().__init__()
@@ -153,3 +174,33 @@ class CodeReviewApp(App[UserResponse]):
     async def on_mount(self) -> None:
         """Mount the screen."""
         await self.push_screen(self.main_screen)
+
+    def action_noop(self) -> None:
+        """Do nothing"""
+        pass
+
+    def action_copy_to_clipboard(self) -> None:
+        """Copy focused widget value to clipboard"""
+        f: Widget | None = self.screen.focused
+        if not f:
+            return
+
+        if isinstance(f, (Input, Select)):
+            self.app.post_message(
+                SendToClipboard(
+                    str(f.value) if f.value and f.value != Select.BLANK else ""
+                )
+            )
+
+        if isinstance(f, TextArea):
+            self.app.post_message(SendToClipboard(f.selected_text or f.text))
+
+    @on(SendToClipboard)
+    def send_to_clipboard(self, event: SendToClipboard) -> None:
+        """Send string to clipboard"""
+        # works for remote ssh sessions
+        self.copy_to_clipboard(event.message)
+        # works for local sessions
+        pyperclip.copy(event.message)
+        if event.notify:
+            self.notify("Copied to clipboard")
