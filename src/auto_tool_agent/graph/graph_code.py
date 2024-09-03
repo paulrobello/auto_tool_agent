@@ -14,6 +14,7 @@ from auto_tool_agent.graph.graph_shared import (
     save_state,
     load_existing_tools,
     git_actor,
+    UserAbortError,
 )
 from auto_tool_agent.app_logging import agent_log, console
 from auto_tool_agent.graph.graph_state import (
@@ -22,7 +23,7 @@ from auto_tool_agent.graph.graph_state import (
     DependenciesNeededResponse,
     CodeReviewResponse,
 )
-from auto_tool_agent.lib.output_utils import show_diff
+from auto_tool_agent.lib.output_utils import format_diff
 from auto_tool_agent.lib.session import session
 from auto_tool_agent.opts import opts
 from auto_tool_agent.tui.code_review import CodeReviewApp
@@ -126,18 +127,19 @@ Below are the rules for the code:
     any_updated: bool = False
     for tool_def in state["needed_tools"]:
         if tool_def.needs_review:
-            if not tool_def.code:
-                tool_def.load_code()
             tool_def.existing = True
+            tool_def.format_code()
 
             if opts.interactive:
                 user_review = CodeReviewApp(tool_def).run()
+                tool_def.format_code()
+
                 if user_review == "Accept":
                     any_updated = True
                 elif user_review == "Reject":
                     continue
                 elif user_review == "Abort":
-                    raise ValueError("Aborted review")
+                    raise UserAbortError("Aborted review")
                 if not tool_def.needs_review:
                     continue
             console.log(f"[bold green]Reviewing tool: [bold yellow]{tool_def.name}")
@@ -168,19 +170,20 @@ Below are the rules for the code:
 
                 tool_def.needs_review = True
                 tool_def.code = result.updated_tool_code
-                tool_def.save_code()
-                tool_def.save_metadata()
+                tool_def.save()
 
-                console.log(show_diff(repo, tool_def.tool_path))
+                # console.log(show_diff(repo, tool_def.tool_path))
                 repo.index.add([tool_def.tool_path, tool_def.metadata_path])
 
-                user_review = CodeReviewApp(tool_def, result).run()
+                user_review = CodeReviewApp(
+                    tool_def, result, format_diff(repo, tool_def.tool_path)
+                ).run()
                 if user_review == "Accept":
                     any_updated = True
                 elif user_review == "Reject":
                     continue
                 elif user_review == "Abort":
-                    raise ValueError("Aborted review")
+                    raise UserAbortError("Aborted review")
 
                 repo.index.commit(
                     f"Session: {session.id} - Revised Tool: {tool_def.name}\n{result.tool_issues}",
@@ -232,8 +235,7 @@ def build_tool(state: GraphState):
             code_tool(tool_def)
             tool_def.existing = True
             tool_def.needs_review = True
-            tool_def.save_code()
-            tool_def.save_metadata()
+            tool_def.save()
             repo.index.add([tool_def.tool_path, tool_def.metadata_path])
             repo.index.commit(
                 f"Session: {session.id} - New Tool: {tool_def.name}",

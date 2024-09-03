@@ -31,6 +31,7 @@ from auto_tool_agent.graph.graph_shared import (
     save_state,
     load_existing_tools,
     git_actor,
+    UserAbortError,
 )
 from auto_tool_agent.graph.graph_state import (
     GraphState,
@@ -270,15 +271,20 @@ def run_graph():
     console.log(
         f"[bold green]Invoking graph request: [bold cyan]{initial_state['user_request']}"
     )
-    final_state = app.invoke(
-        initial_state,
-        config={
-            "configurable": {
-                "thread_id": session.id,
-                "recursion_limit": opts.max_iterations,
-            }
-        },
-    )
+    try:
+        final_state = app.invoke(
+            initial_state,
+            config={
+                "configurable": {
+                    "thread_id": session.id,
+                    "recursion_limit": opts.max_iterations,
+                }
+            },
+        )
+    except UserAbortError as user_abort:
+        console.log(f"[bold red]{user_abort}")
+        return
+
     if opts.verbose > 2:
         print(final_state)
 

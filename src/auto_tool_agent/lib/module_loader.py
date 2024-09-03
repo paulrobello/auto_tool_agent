@@ -26,7 +26,7 @@ class ModuleLoader(FileSystemEventHandler):
 
         self.load_existing_modules(self.folder_path / "tools")
         # load any existing modules
-        self.load_existing_modules(self.folder_path)
+        self.load_existing_modules(self.folder_path / "ai_tools")
         # load any existing modules
         self.last_loaded_modules = {}
         # used to avoid loading modules too often

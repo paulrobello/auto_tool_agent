@@ -52,7 +52,7 @@ def highlight_json_file(json_file: str) -> Syntax:
     return highlight_json(data)
 
 
-def show_diff(repo: Repo, file_path: Path) -> Syntax:
+def format_diff(repo: Repo, file_path: Path) -> Syntax:
     """Get dif with syntax high."""
     ret = ""
     diff_index = repo.index.diff(None, file_path, create_patch=True)

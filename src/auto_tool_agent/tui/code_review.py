@@ -5,13 +5,23 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal, Optional
 import pyperclip  # type: ignore
+from rich.syntax import Syntax
 
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import Screen
-from textual.widgets import Header, Footer, TextArea, Button, Checkbox, Input, Select
+from textual.widgets import (
+    Header,
+    Footer,
+    TextArea,
+    Button,
+    Checkbox,
+    Input,
+    Select,
+    Static,
+)
 from textual.widget import Widget
 from textual.message import Message
 
@@ -55,6 +65,10 @@ class MainScreen(Screen[None]):
                 width: 1fr;
                 height: 8;
             }
+            #Diff{
+                width: 1fr;
+                height: 8fr;
+            }
             #DepsEditor{
                 width: 1fr;
                 height: 8;
@@ -68,13 +82,17 @@ class MainScreen(Screen[None]):
     """
 
     def __init__(
-        self, tool_def: ToolDescription, ai_review: Optional[CodeReviewResponse]
+        self,
+        tool_def: ToolDescription,
+        ai_review: Optional[CodeReviewResponse],
+        diff: Optional[Syntax],
     ) -> None:
         """Initialise the screen."""
         super().__init__()
         self.title = f"Code Review - {tool_def.name}"
         self.tool_def = tool_def
         self.ai_review = ai_review
+        self.diff = diff
         self.updated = False
 
     def compose(self) -> ComposeResult:
@@ -98,6 +116,13 @@ class MainScreen(Screen[None]):
                         id="AIReview",
                         read_only=True,
                     )
+                if self.diff:
+                    with VerticalScroll(
+                        id="Diff",
+                    ):
+                        yield Static(
+                            self.diff,
+                        )
                 yield TextArea.code_editor(
                     "\n".join(self.tool_def.dependencies),
                     id="DepsEditor",
@@ -134,8 +159,7 @@ class MainScreen(Screen[None]):
         self.tool_def.dependencies = (
             self.query_one("#DepsEditor", TextArea).text.strip().split("\n")
         )
-        self.tool_def.save_code()
-        self.tool_def.save_metadata()
+        self.tool_def.save()
 
     def confirm_reject_response(self, res: Optional[bool]) -> None:
         """Delete tool"""
@@ -179,11 +203,14 @@ class CodeReviewApp(App[UserResponse]):
     ]
 
     def __init__(
-        self, tool_def: ToolDescription, ai_review: Optional[CodeReviewResponse] = None
+        self,
+        tool_def: ToolDescription,
+        ai_review: Optional[CodeReviewResponse] = None,
+        diff: Optional[Syntax] = None,
     ) -> None:
         """Initialise the app."""
         super().__init__()
-        self.main_screen = MainScreen(tool_def, ai_review)
+        self.main_screen = MainScreen(tool_def, ai_review, diff)
 
     async def on_mount(self) -> None:
         """Mount the screen."""

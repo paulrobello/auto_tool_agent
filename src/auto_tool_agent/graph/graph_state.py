@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from typing import TypedDict, Annotated, List, Optional, Any
+import black
+
 from pydantic import BaseModel, Field
 
 from auto_tool_agent.opts import opts
@@ -34,29 +36,50 @@ class ToolDescription(BaseModel):
     @property
     def tool_path(self) -> Path:
         """Get the path to the tool."""
-        return Path(opts.sandbox_dir) / "src" / "sandbox" / (self.name + ".py")
+        return (
+            Path(opts.sandbox_dir)
+            / "src"
+            / "sandbox"
+            / "ai_tools"
+            / (self.name + ".py")
+        )
 
     @property
     def metadata_path(self) -> Path:
         """Get the path to the tool."""
-        return Path(opts.sandbox_dir) / "src" / "metadata" / (self.name + ".json")
+        return (
+            Path(opts.sandbox_dir)
+            / "src"
+            / "sandbox"
+            / "ai_tools_metadata"
+            / (self.name + ".json")
+        )
 
-    def save_code(self) -> None:
+    def format_code(self) -> bool:
+        """Format the code."""
+        old_code = self.code
+        self.code = black.format_str(self.code, mode=black.Mode())
+        return old_code != self.code
+
+    def save(self) -> None:
         """Save the tool."""
+        self.format_code()
+        self.tool_path.parent.mkdir(parents=True, exist_ok=True)
         self.tool_path.write_text(self.code, encoding="utf-8")
 
-    def load_code(self) -> bool:
-        """Load the tool code."""
-        tool_path = self.tool_path
-        if tool_path.exists():
-            self.code = tool_path.read_text(encoding="utf-8")
-            return True
-        return False
+        self.metadata_path.parent.mkdir(parents=True, exist_ok=True)
+        self.metadata_path.write_text(self.model_dump_json(indent=2), encoding="utf-8")
 
-    def load_metadata(self) -> None:
-        """Load the tool metadata."""
+    def load(self) -> bool:
+        """Load the tool via metadata with fallback to code."""
         if not self.metadata_path.exists():
-            return
+            if self.tool_path.exists():
+                self.code = self.tool_path.read_text(encoding="utf-8")
+                self.existing = True
+                self.needs_review = False
+                self.dependencies = []
+                return True
+            return False
         meta = ToolDescription.model_validate_json(
             self.metadata_path.read_text(encoding="utf-8")
         )
@@ -64,16 +87,7 @@ class ToolDescription(BaseModel):
         self.code = meta.code
         self.existing = True
         self.needs_review = False
-
-    def save_metadata(self) -> None:
-        """Save the tool metadata."""
-        (Path(opts.sandbox_dir) / "src" / "metadata").mkdir(parents=True, exist_ok=True)
-        self.metadata_path.write_text(self.model_dump_json(indent=2), encoding="utf-8")
-
-    def save_all(self) -> None:
-        """Save the tool."""
-        self.save_code()
-        self.save_metadata()
+        return True
 
     def delete(self):
         """Delete the tool."""

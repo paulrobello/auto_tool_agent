@@ -54,4 +54,12 @@ def load_existing_tools(state: GraphState):
     # print(tool_data)
 
 
+class AutoToolAgentError(Exception):
+    """Auto tool agent error."""
+
+
+class UserAbortError(AutoToolAgentError):
+    """User abort error."""
+
+
 git_actor = Actor("Auto Agent", "auto_agent@pardev.net")
