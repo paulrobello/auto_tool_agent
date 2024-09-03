@@ -25,7 +25,7 @@ from auto_tool_agent.graph.graph_code import (
 )
 from auto_tool_agent.graph.graph_output import format_output
 from auto_tool_agent.graph.graph_planner import plan_project
-from auto_tool_agent.graph.graph_sandbox import setup_sandbox, sync_venv
+from auto_tool_agent.graph.graph_sandbox import setup_sandbox
 from auto_tool_agent.graph.graph_shared import (
     build_chat_model,
     save_state,
@@ -78,7 +78,7 @@ def has_needed_tools(
     state: GraphState,
 ) -> Literal["plan_project", "get_results", "review_tools"]:
     """Check if a tool is needed."""
-    load_existing_tools(state)
+    load_existing_tools()
     needed_tools = state["needed_tools"]
     for tool_def in needed_tools:
         if tool_def.needs_review:
@@ -100,12 +100,17 @@ def get_results(state: GraphState):
     """Use tools to get results."""
     console.log("[bold green]Getting results...")
     repo = Repo(state["sandbox_dir"])
-    repo.index.add(repo.untracked_files)
-    repo.index.commit(
-        f"Session: {session.id} - Request: " + state["user_request"],
-        author=git_actor,
-        committer=git_actor,
-    )
+
+    leftovers = repo.untracked_files + [item.a_path for item in repo.index.diff(None)]
+    if len(leftovers) > 0:
+        console.log("[bold green]Commiting all changes...")
+        repo.index.add(leftovers)
+        repo.index.commit("Adding all changes", author=git_actor, committer=git_actor)
+        repo.index.commit(
+            f"Session: {session.id} - Request: " + state["user_request"],
+            author=git_actor,
+            committer=git_actor,
+        )
     if opts.verbose > 1:
         agent_log.info("needed_tools: %s", state["needed_tools"])
         agent_log.info("ai_tools: %s", tool_data)
@@ -113,6 +118,9 @@ def get_results(state: GraphState):
     for tool_def in state["needed_tools"]:
         if tool_def.name in tool_data.ai_tools:
             tools.append(tool_data.ai_tools[tool_def.name])
+        else:
+            raise ValueError(f"Missing tool: {tool_def.name}")
+
     if len(tools) == 0:
         raise ValueError("No tools found")
     system_prompt = """
@@ -176,19 +184,10 @@ You must follow all instructions below:
     }
 
 
-def ask_human(_: GraphState):
-    """Ask human."""
-    return {
-        "call_stack": ["ask_human"],
-        "user_feedback": input("Enter your request: "),
-    }
-
-
 # Define a new graph
 workflow = StateGraph(GraphState)
 
 workflow.add_node("setup_sandbox", setup_sandbox)
-workflow.add_node("sync_venv", sync_venv)
 workflow.add_node("plan_project", plan_project)
 workflow.add_node("build_tool", build_tool)
 workflow.add_node("review_tools", review_tools)
@@ -198,8 +197,7 @@ workflow.add_node("format_output", format_output)
 workflow.add_node("save_state", save_state)
 
 workflow.add_edge(START, "setup_sandbox")
-workflow.add_edge("setup_sandbox", "sync_venv")
-workflow.add_edge("sync_venv", "plan_project")
+workflow.add_edge("setup_sandbox", "plan_project")
 workflow.add_conditional_edges("plan_project", is_tool_needed)
 workflow.add_edge("build_tool", "review_tools")
 workflow.add_edge("review_tools", "get_results_pre_check")
@@ -254,11 +252,25 @@ def run_graph():
                 "asyncio",
                 "langchain",
                 "langchain-core",
+                "langchain-community",
+                "langchain-ollama",
+                "langchain-openai",
+                "langchain-anthropic",
+                "langchain-google-genai",
+                "langchain-groq",
+                "langchain-huggingface",
+                "langchain-text-splitters",
+                "langgraph",
                 "mardownify",
                 "pydantic",
                 "pydantic-core",
+                "pydantic-settings",
                 "requests",
                 "rich",
+                "black",
+                "watchdog",
+                "python-dotenv",
+                "simplejson",
             ],
         ),
         "user_request": opts.user_request,

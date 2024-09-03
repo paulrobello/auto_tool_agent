@@ -197,7 +197,7 @@ Below are the rules for the code:
                 )
 
     if any_updated:
-        load_existing_tools(state)
+        load_existing_tools()
     save_state(state)
     return {"call_stack": ["review_tools"], "needed_tools": state["needed_tools"]}
 
@@ -218,7 +218,7 @@ def sync_deps_if_needed(state: GraphState) -> bool:
     if current_deps != needed_deps:
         console.log("[bold green]Dependencies changed...")
         state["dependencies"] = list(needed_deps)
-        sync_venv(state)
+        sync_venv(state["dependencies"])
         return True
     return False
 

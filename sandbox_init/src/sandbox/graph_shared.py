@@ -3,18 +3,16 @@
 from __future__ import annotations
 
 import simplejson as json
-from git.util import Actor
 from langchain_core.language_models import BaseChatModel
 
-from auto_tool_agent.app_logging import agent_log
-from auto_tool_agent.graph.graph_state import GraphState
-from auto_tool_agent.lib.llm_config import LlmConfig
-from auto_tool_agent.lib.llm_providers import (
+from sandbox.graph_state import GraphState
+from sandbox.lib.llm_config import LlmConfig
+from sandbox.lib.llm_providers import (
     get_llm_provider_from_str,
     provider_default_models,
 )
-from auto_tool_agent.lib.module_loader import ModuleLoader
-from auto_tool_agent.opts import opts, format_to_extension
+from sandbox.lib.module_loader import ModuleLoader
+from sandbox.opts import opts, format_to_extension, console, APP_PREFIX
 
 
 def build_chat_model(*, temperature: float = 0.5) -> BaseChatModel:
@@ -26,7 +24,7 @@ def build_chat_model(*, temperature: float = 0.5) -> BaseChatModel:
         temperature=temperature,
     )
     if opts.verbose > 2:
-        agent_log.info(llm_config)
+        console.log(APP_PREFIX, llm_config)
     return llm_config.build_chat_model()
 
 
@@ -48,9 +46,9 @@ def save_state(state: GraphState):
     return {"call_stack": ["save_state"]}
 
 
-def load_existing_tools():
+def load_existing_tools(state: GraphState):
     """Load existing tools."""
-    ModuleLoader(opts.sandbox_dir / "src" / "sandbox")
+    ModuleLoader(state["sandbox_dir"])
     # print(tool_data)
 
 
@@ -60,6 +58,3 @@ class AutoToolAgentError(Exception):
 
 class UserAbortError(AutoToolAgentError):
     """User abort error."""
-
-
-git_actor = Actor("Auto Agent", "auto_agent@pardev.net")
