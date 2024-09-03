@@ -26,6 +26,7 @@ from auto_tool_agent.graph.graph_state import (
 from auto_tool_agent.lib.output_utils import format_diff
 from auto_tool_agent.lib.session import session
 from auto_tool_agent.opts import opts
+from auto_tool_agent.tool_data import tool_data
 from auto_tool_agent.tui.code_review import CodeReviewApp
 
 CODE_RULES = """
@@ -145,6 +146,14 @@ Below are the rules for the code:
             console.log(f"[bold green]Reviewing tool: [bold yellow]{tool_def.name}")
 
             tool_def.needs_review = False
+            error_msg = ""
+            if tool_def.name in tool_data.bad_tools:
+                error_msg = (
+                    "\n"
+                    + "=" * 50
+                    + "\nThe tool had the following exception:\n"
+                    + str(tool_data.bad_tools[tool_def.name])
+                )
 
             result: CodeReviewResponse = structure_model.with_config(
                 {"run_name": "Review Tool"}
@@ -155,6 +164,7 @@ Below are the rules for the code:
                         "user",
                         f"""
 {tool_def.code}
+{error_msg}
 """,
                     ),
                 ]
@@ -175,15 +185,16 @@ Below are the rules for the code:
                 # console.log(show_diff(repo, tool_def.tool_path))
                 repo.index.add([tool_def.tool_path, tool_def.metadata_path])
 
-                user_review = CodeReviewApp(
-                    tool_def, result, format_diff(repo, tool_def.tool_path)
-                ).run()
-                if user_review == "Accept":
-                    any_updated = True
-                elif user_review == "Reject":
-                    continue
-                elif user_review == "Abort":
-                    raise UserAbortError("Aborted review")
+                if opts.interactive:
+                    user_review = CodeReviewApp(
+                        tool_def, result, format_diff(repo, tool_def.tool_path)
+                    ).run()
+                    if user_review == "Accept":
+                        any_updated = True
+                    elif user_review == "Reject":
+                        continue
+                    elif user_review == "Abort":
+                        raise UserAbortError("Aborted review")
 
                 repo.index.commit(
                     f"Session: {session.id} - Revised Tool: {tool_def.name}\n{result.tool_issues}",

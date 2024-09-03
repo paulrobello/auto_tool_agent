@@ -28,11 +28,11 @@ class ToolDescription(BaseModel):
     )
     existing: bool = Field(
         description="Set to True if this tool already exists or False if it needs to be built.",
-        default = True,
+        default=True,
     )
     needs_review: bool = Field(
         description="Set to True if this tool needs review or False if it does not need review.",
-        default = False,
+        default=False,
     )
 
     @property

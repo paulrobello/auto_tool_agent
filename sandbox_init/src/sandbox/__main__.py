@@ -71,12 +71,8 @@ You must follow all instructions below:
         {
             "chat_history": [],
             "input": state["user_request"],
-            "bad_tools": "\n".join(tool_data.bad_tools[:1]),
         }
     )
-    # for step in ret["intermediate_steps"]:
-    #     (tool, tool_return) = step
-    #     console.print(f"[bold green]Tool: {tool.tool}[/bold green]\n", tool_return)
     output = ret["output"]
     # console.log("output: ============\n", output)
     try:

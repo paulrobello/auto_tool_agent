@@ -67,7 +67,7 @@ class MainScreen(Screen[None]):
             }
             #Diff{
                 width: 1fr;
-                height: 8fr;
+                height: 8;
             }
             #DepsEditor{
                 width: 1fr;

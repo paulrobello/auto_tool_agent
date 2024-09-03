@@ -8,7 +8,7 @@ from pathlib import Path
 from langchain_core.language_models import BaseChatModel
 
 from auto_tool_agent.app_logging import console
-from auto_tool_agent.graph.graph_shared import build_chat_model
+from auto_tool_agent.graph.graph_shared import build_chat_model, load_existing_tools
 from auto_tool_agent.graph.graph_state import GraphState, PlanProjectResponse
 from auto_tool_agent.opts import opts
 from auto_tool_agent.tool_data import tool_data
@@ -43,10 +43,21 @@ def get_available_tool_descriptions_old(state: GraphState) -> str:
 
 def get_available_tool_descriptions() -> str:
     """Get available tool descriptions."""
+    load_existing_tools()
     result = ""
     for name, tool in tool_data.ai_tools.items():
+        result += "=" * 50 + "\n"
         result += f"Tool_Name: {name}\n"
-        result += f"Description: {tool.description}\n\n"
+        result += f"Description: {tool.description}\n"
+        result += "=" * 50 + "\n\n"
+
+    if tool_data.bad_tools:
+        result += "The following tools have errors that need to be fixed:\n"
+        for name, error in tool_data.bad_tools.items():
+            result += "=" * 50 + "\n"
+            result += f"Tool_Name: {name}\n"
+            result += f"Exception: {error}\n"
+            result += "=" * 50 + "\n\n"
 
     return result
 
@@ -61,6 +72,7 @@ Your job is to examine the users request and determine what tools will be needed
 You must follow all instructions below:
 * Examine the list of available tools and if they are relevant to the users request include them in the needed_tools list.
 * Existing tools should have the existing field set to True.
+* If a tool is listed as having errors it should have its needs_review field set to True.
 * Reason how each tool is relevant to the users request and in what order they should be used.
 * If additional tools are needed follow the instructions below:
     * Give the new tools a name that is a valid Python identifier in snake_case

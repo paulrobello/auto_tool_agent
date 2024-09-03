@@ -25,7 +25,6 @@ classifiers = [
 ]
 
 dependencies = [
-
     "black>=24.8.0",
     "boto3>=1.35.5",
     "python-env>=1.0.0",
@@ -75,6 +74,8 @@ dependencies = [
     "keyboard>=0.13.5",
     "beautifulsoup4>=4.12.3",
     "pydantic-settings>=2.4.0",
+    "python-dotenv>=1.0.1",
+    "html2markdown>=0.1.7",
 ]
 
 packages = [

@@ -49,4 +49,3 @@ def highlight_json_file(json_file: str) -> Syntax:
     with open(json_file, "rt", encoding="utf-8", newline="") as data_file:
         data = data_file.read().strip()
     return highlight_json(data)
-

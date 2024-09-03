@@ -68,6 +68,8 @@ def sync_master_venv(dependencies: list[str]):
     sandbox_dir = Path(".").absolute()
 
     project_config = sandbox_dir / "pyproject.toml"
+    if not project_config.exists():
+        raise ValueError("Master project config not found.", project_config)
     project_toml = tomlkit.parse(project_config.read_text(encoding="utf-8"))
     project = cast(Table, project_toml["project"])
     project_deps = project.get("dependencies") or []
@@ -128,12 +130,13 @@ def sync_venv(dependencies: list[str]):
             console.log("[bold green]Sandbox installing missing deps...", to_install)
             config = {
                 "command": "uv",
-                "params": ["add"] + to_install,
+                "params": ["add", "-U"] + to_install,
                 "folder": sandbox_dir,
             }
+            console.log(config)
             result = execute_command(config)
             if result["exit_code"] != 0:
-                agent_log.error(result)
+                console.log(result["stderr"])
                 raise ValueError("Failed to add dependencies to project config.")
 
         to_remove = list(existing_deps - requested_deps)
@@ -152,8 +155,10 @@ def sync_venv(dependencies: list[str]):
         if opts.verbose > 1:
             agent_log.info("Sandbox dependencies already in sync.")
 
+    # exit(1)
     repo = Repo(sandbox_dir)
-    if next(repo.iter_commits(), None) is None:
+    # if next(repo.iter_commits(), None) is None:
+    if "main" not in [head.name for head in repo.heads]:
         console.log("[bold green]Creating initial commit...")
         repo.index.add(repo.untracked_files)
         repo.index.commit("Initial commit", author=git_actor, committer=git_actor)

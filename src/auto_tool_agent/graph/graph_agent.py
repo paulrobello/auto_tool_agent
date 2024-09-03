@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Literal, Any
 from pathlib import Path
-import simplejson as json
 from git import Repo
 
 from langchain.agents import create_tool_calling_agent, AgentExecutor
@@ -44,7 +43,9 @@ from auto_tool_agent.opts import opts
 from auto_tool_agent.tool_data import tool_data
 
 
-def is_tool_needed(state: GraphState) -> Literal["build_tool", "get_results_pre_check"]:
+def is_tool_needed(
+    state: GraphState,
+) -> Literal["build_tool", "review_tools", "get_results_pre_check"]:
     """Check if a tool is needed."""
     # return "save_state"
     needed_tools = state["needed_tools"]
@@ -54,6 +55,11 @@ def is_tool_needed(state: GraphState) -> Literal["build_tool", "get_results_pre_
                 f"[bold green]New tool needed: [bold yellow]{tool_def.name}. [/bold yellow]Building tool..."
             )
             return "build_tool"
+        if tool_def.needs_review:
+            console.log(
+                f"[bold green]Tool review needed: [bold yellow]{tool_def.name}. [/bold yellow]Reviewing tool..."
+            )
+            return "review_tools"
 
     if sync_deps_if_needed(state):
         if opts.verbose > 1:
@@ -158,13 +164,7 @@ You must follow all instructions below:
         verbose=False,
         return_intermediate_steps=True,  # pyright: ignore [reportArgumentType]
     )
-    ret = agent_executor.invoke(
-        {
-            "chat_history": [],
-            "input": state["user_request"],
-            "bad_tools": "\n".join(tool_data.bad_tools[:1]),
-        }
-    )
+    ret = agent_executor.invoke({"chat_history": [], "input": state["user_request"]})
     # for step in ret["intermediate_steps"]:
     #     (tool, tool_return) = step
     #     console.print(f"[bold green]Tool: {tool.tool}[/bold green]\n", tool_return)
@@ -241,7 +241,8 @@ def run_graph():
     old_state: dict[str, Any] = {}
     state_file = Path("state.json")
     if state_file.exists():
-        old_state = json.loads(state_file.read_text(encoding="utf-8"))
+        pass
+        # old_state = json.loads(state_file.read_text(encoding="utf-8"))
 
     initial_state: GraphState = {
         "clean_run": opts.clear_sandbox,
@@ -258,13 +259,10 @@ def run_graph():
                 "langchain-anthropic",
                 "langchain-google-genai",
                 "langchain-groq",
-                "langchain-huggingface",
-                "langchain-text-splitters",
                 "langgraph",
-                "mardownify",
+                "markdownify",
                 "pydantic",
                 "pydantic-core",
-                "pydantic-settings",
                 "requests",
                 "rich",
                 "black",

@@ -2,8 +2,11 @@ version = 1
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version < '3.12'",
-    "python_full_version < '3.12.4'",
-    "python_full_version < '3.13'",
+    "python_full_version < '3.12'",
+    "python_full_version >= '3.12' and python_full_version < '3.12.4'",
+    "python_full_version < '3.12'",
+    "python_full_version >= '3.12' and python_full_version < '3.12.4'",
+    "python_full_version >= '3.12.4' and python_full_version < '3.13'",
     "python_full_version >= '3.13'",
 ]
 
@@ -180,6 +183,7 @@ dependencies = [
     { name = "docker" },
     { name = "experimental" },
     { name = "gitpython" },
+    { name = "html2markdown" },
     { name = "httpx" },
     { name = "humanize" },
     { name = "isodate2" },
@@ -206,6 +210,7 @@ dependencies = [
     { name = "pypdf" },
     { name = "pyperclip" },
     { name = "pytest" },
+    { name = "python-dotenv" },
     { name = "python-env" },
     { name = "pytz" },
     { name = "requests" },
@@ -242,6 +247,7 @@ requires-dist = [
     { name = "docker", specifier = ">=7.1.0" },
     { name = "experimental", specifier = ">=0.9.7" },
     { name = "gitpython", specifier = ">=3.1.43" },
+    { name = "html2markdown", specifier = ">=0.1.7" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "humanize", specifier = ">=4.10.0" },
     { name = "isodate2", specifier = ">=0.9.0" },
@@ -268,6 +274,7 @@ requires-dist = [
     { name = "pypdf", specifier = ">=4.3.1" },
     { name = "pyperclip", specifier = ">=1.9.0" },
     { name = "pytest", specifier = ">=8.3.2" },
+    { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "python-env", specifier = ">=1.0.0" },
     { name = "pytz", specifier = ">=2024.1" },
     { name = "requests", specifier = ">=2.32.3" },
@@ -904,6 +911,15 @@ sdist = { url = "https://files.pythonhosted.org/packages/f5/38/3af3d3633a34a3316
 wheels = [
     { url = "https://files.pythonhosted.org/packages/95/04/ff642e65ad6b90db43e668d70ffb6736436c7ce41fcc549f4e9472234127/h11-0.14.0-py3-none-any.whl", hash = "sha256:e3fe4ac4b851c468cc8363d500db52c2ead036020723024a109d37346efaa761", size = 58259 },
 ]
+
+[[package]]
+name = "html2markdown"
+version = "0.1.7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "beautifulsoup4" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ba/05/666b8105c1c45ee05fcbcb210176c73638710e402b99c5968c5dfdf3c67d/html2markdown-0.1.7.tar.gz", hash = "sha256:92baf932c7f216be6d9459a191d45b6401e204bda7a5413febafa875512cfa8c", size = 5253 }
 
 [[package]]
 name = "httpcore"
@@ -5281,7 +5297,7 @@ name = "tree-sitter"
 version = "0.20.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "setuptools" },
+    { name = "setuptools", marker = "python_full_version >= '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/4a/64/71b3a0ff7d0d89cb333caeca01992099c165bdd663e7990ea723615e60f4/tree_sitter-0.20.4.tar.gz", hash = "sha256:6adb123e2f3e56399bbf2359924633c882cc40ee8344885200bca0922f713be5", size = 140726 }
 wheels = [

@@ -80,14 +80,17 @@ class ModuleLoader(FileSystemEventHandler):
                         len(new_tools),
                         module_name,
                     )
-                    tool_data.add_bad_tool(module_name)
+                    tool_data.add_bad_tool(
+                        module_name,
+                        ValueError("Found more than one function annotated with @tool"),
+                    )
                     return
                 tool_data.add_good_tool(module_name, new_tools[0])
             else:
                 if opts.verbose > 1:
                     ml_log.info("Ignoring non-Python file: %s", module_path)
         except Exception as e:  # pylint: disable=broad-except
-            tool_data.add_bad_tool(module_name)
+            tool_data.add_bad_tool(module_name, e)
             ml_log.exception(
                 "[red]Error[/red]: loading module %s: %s", module_path, str(e)
             )
