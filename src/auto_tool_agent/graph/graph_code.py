@@ -47,13 +47,18 @@ def code_tool(tool_desc: ToolDescription) -> None:
     model = build_chat_model()
 
     system_prompt = f"""
-# You are an expert in Python programming.
-Please ensure you follow ALL instructions below:
+ROLE: You are an expert Python programmer.
+
+TASK: Create a Python tool based on the provided name and description.
+
+INSTRUCTIONS:
+1. Follow ALL rules below:
 {CODE_RULES}
-* Only output the code. Do not include any other markdown or formatting.
-* The user will provide the name and description of the tool.
-* You must implement the functionality described in the Tool_Description.
-    """
+2. Output ONLY the code. No markdown or additional formatting.
+3. Implement EXACTLY the functionality described in the Tool_Description.
+
+IMPORTANT: The user will provide the tool name and description. Your job is to code it precisely as specified.
+"""
     code_result = model.with_config({"run_name": "Tool Coder"}).invoke(
         [
             ("system", system_prompt),
@@ -113,15 +118,21 @@ def review_tools(state: GraphState):
     repo = Repo(state["sandbox_dir"])
 
     system_prompt = f"""
-# You are a Python code review expert.
-Your job is to examine a python file and determine if its syntax and logic are correct.
-Below are the rules for the code:
+ROLE: You are a Python code review expert.
+
+TASK: Examine the provided Python file and assess its syntax and logic for correctness.
+
+RULES:
 {CODE_RULES}
-* Only update the tool if it is incorrect.
-* If you update a tool ensure you follow these instructions:
-    * Write it in Python following the above rules for code.
-    * Ensure that it implements the functionality described in the doc string.
-    * Do not output markdown tags such as "```" or "```python"
+
+REVIEW INSTRUCTIONS:
+1. ONLY update the tool if it is incorrect.
+2. If an update is needed:
+   a. Write in Python following the above rules.
+   b. Ensure it implements the functionality described in the docstring.
+   c. DO NOT use markdown tags (e.g., ``` or ```python).
+
+IMPORTANT: Focus on correctness and adherence to the specified functionality. Only suggest changes if absolutely necessary.
 """
     model: BaseChatModel = build_chat_model(temperature=0.25)
     structure_model = model.with_structured_output(CodeReviewResponse)
