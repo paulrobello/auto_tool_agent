@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from dotenv import load_dotenv
-from auto_tool_agent.app_logging import log, console
+from auto_tool_agent.app_logging import log, console, global_vars
 from auto_tool_agent.graph.graph_agent import run_graph
 from auto_tool_agent.opts import opts
 
@@ -18,7 +18,8 @@ async def async_main() -> None:
     try:
         if opts.verbose > 1:
             log.info(opts)
-        with console.status("[bold green]Working on tasks..."):
+        with console.status("[bold green]Working on tasks...") as status:
+            global_vars.status = status
             run_graph()
     except Exception as e:  # pylint: disable=broad-except
         log.exception(e)

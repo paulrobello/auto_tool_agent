@@ -61,13 +61,13 @@ class MainScreen(Screen[None]):
         Vertical{
             width: 1fr;
             height: 1fr;
-            #AIReview{
+            #CodeReview{
                 width: 1fr;
-                height: 8;
+                height: 6;
             }
             #Diff{
                 width: 1fr;
-                height: 8;
+                height: 10;
                 #DiffSyntax{
                     width: 1fr;
                     height: auto;
@@ -75,11 +75,18 @@ class MainScreen(Screen[None]):
             }
             #DepsEditor{
                 width: 1fr;
-                height: 8;
+                height: 6;
             }
             #CodeEditor{
                 width: 1fr;
                 height: 1fr;
+            }
+            TextArea{
+                border-title-color: $accent;
+            }
+            VerticalScroll{
+                border: tall $background;
+                border-title-color: $accent;
             }
         }
     }
@@ -88,14 +95,14 @@ class MainScreen(Screen[None]):
     def __init__(
         self,
         tool_def: ToolDescription,
-        ai_review: Optional[CodeReviewResponse],
+        code_review: CodeReviewResponse,
         diff: Optional[Syntax],
     ) -> None:
         """Initialise the screen."""
         super().__init__()
         self.title = f"Code Review - {tool_def.name}"
         self.tool_def = tool_def
-        self.ai_review = ai_review
+        self.code_review = code_review
         self.diff = diff
         self.updated = False
 
@@ -114,36 +121,40 @@ class MainScreen(Screen[None]):
                         id="NeedsReview",
                         value=self.tool_def.needs_review,
                     )
-                if self.ai_review:
-                    yield TextArea(
-                        self.ai_review.tool_issues,
-                        id="AIReview",
-                        read_only=True,
-                    )
+                with TextArea(
+                    self.code_review.tool_issues,
+                    id="CodeReview",
+                ) as cr:
+                    cr.border_title = "Code Review"
                 if self.diff:
                     with VerticalScroll(
                         id="Diff",
-                    ):
+                    ) as diff_vs:
+                        diff_vs.border_title = "Diff"
                         yield Static(
                             self.diff,
                             id="DiffSyntax",
                         )
-                yield TextArea.code_editor(
+                with TextArea.code_editor(
                     "\n".join(self.tool_def.dependencies),
                     id="DepsEditor",
                     read_only=False,
-                )
-                yield TextArea.code_editor(
+                ) as deps_editor:
+                    deps_editor.border_title = "Dependencies"
+                with TextArea.code_editor(
                     self.tool_def.code.strip() + "\n",
                     id="CodeEditor",
                     language="python",
                     read_only=False,
-                )
-        self.updated = False
+                ) as code_editor:
+                    code_editor.border_title = "Code"
 
     @on(Button.Pressed, "#Accept")
     async def accept(self) -> None:
         """Accept the changes"""
+        self.code_review.tool_valid = True
+        self.tool_def.existing = True
+
         if self.updated:
             await self.app.push_screen(
                 YesNoDialog(
@@ -152,24 +163,41 @@ class MainScreen(Screen[None]):
                 ),
                 self.confirm_save_response,
             )
-        self.app.exit("Accept")
+        else:
+            self.app.exit("Accept")
 
-    async def confirm_save_response(self, res: Optional[bool]) -> None:
+    def confirm_save_response(self, res: Optional[bool]) -> None:
         """Save code"""
         if not res:
             return
-        self.tool_def.existing = True
+
         self.tool_def.needs_review = self.query_one(Checkbox).value
-        self.tool_def.code = self.query_one("#CodeEditor", TextArea).text.strip() + "\n"
-        self.tool_def.dependencies = (
-            self.query_one("#DepsEditor", TextArea).text.strip().split("\n")
+        old_code = self.tool_def.code
+        new_code = self.query_one("#CodeEditor", TextArea).text.strip() + "\n"
+        self.tool_def.code = new_code
+
+        old_deps = self.tool_def.dependencies
+        new_deps = self.query_one("#DepsEditor", TextArea).text.strip().split("\n")
+        self.tool_def.dependencies = new_deps
+        self.code_review.tool_updated = old_code != new_code or set(old_deps) != set(
+            new_deps
         )
+
+        new_issues = self.query_one("#CodeReview", TextArea).text.strip()
+        old_issues = self.code_review.tool_issues.strip()
+        if new_issues != old_issues:
+            self.code_review.tool_issues = new_issues
+        else:
+            self.code_review.tool_issues = ""
+
         self.tool_def.save()
+        self.app.exit("Accept")
 
     def confirm_reject_response(self, res: Optional[bool]) -> None:
         """Delete tool"""
         if not res:
             return
+        self.code_review.tool_valid = False
         self.tool_def.delete()
         self.app.exit("Reject")
 
@@ -193,6 +221,7 @@ class MainScreen(Screen[None]):
     def textarea_changed(self) -> None:
         """Set updated flag"""
         self.updated = True
+        self.title = f"Code Review - {self.tool_def.name} - Updated"
 
     @on(Checkbox.Changed)
     def checkbox_changed(self) -> None:
@@ -210,12 +239,12 @@ class CodeReviewApp(App[UserResponse]):
     def __init__(
         self,
         tool_def: ToolDescription,
-        ai_review: Optional[CodeReviewResponse] = None,
+        code_review: CodeReviewResponse,
         diff: Optional[Syntax] = None,
     ) -> None:
         """Initialise the app."""
         super().__init__()
-        self.main_screen = MainScreen(tool_def, ai_review, diff)
+        self.main_screen = MainScreen(tool_def, code_review, diff)
 
     async def on_mount(self) -> None:
         """Mount the screen."""

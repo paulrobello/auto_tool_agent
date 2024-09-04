@@ -16,7 +16,7 @@ from rich.markdown import Markdown
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 
-from auto_tool_agent.app_logging import console, agent_log
+from auto_tool_agent.app_logging import console, agent_log, global_vars
 from auto_tool_agent.graph.graph_code import (
     review_tools,
     sync_deps_if_needed,
@@ -70,6 +70,7 @@ def is_tool_needed(
 
 def get_results_pre_check(state: GraphState):
     """Check if a tool is needed."""
+    global_vars.status_update("Get results pre check...")
     console.log(
         f"[bold green]Ensuring needed tools are available: [bold yellow]{[tool.name for tool in state['needed_tools']]}"
     )
@@ -104,7 +105,8 @@ def has_needed_tools(
 
 def get_results(state: GraphState):
     """Use tools to get results."""
-    console.log("[bold green]Getting results...")
+    global_vars.status_update("Getting results...")
+
     repo = Repo(state["sandbox_dir"])
 
     leftovers = repo.untracked_files + [item.a_path for item in repo.index.diff(None)]
@@ -118,8 +120,8 @@ def get_results(state: GraphState):
             committer=git_actor,
         )
     if opts.verbose > 1:
-        agent_log.info("needed_tools: %s", state["needed_tools"])
-        agent_log.info("ai_tools: %s", tool_data)
+        console.log("needed_tools:", [tool.name for tool in state["needed_tools"]])
+        console.log("ai_tools:", [tool.name for tool in tool_data.ai_tools.values()])
     tools = []
     for tool_def in state["needed_tools"]:
         if tool_def.name in tool_data.ai_tools:
@@ -218,7 +220,7 @@ app = workflow.compile(checkpointer=checkpointer)
 
 def generate_graph_viz():
     """Generate graphviz."""
-    console.log("[bold green]Creating graph viz...")
+    global_vars.status_update("Creating graph viz...")
     # Draw the graph via mermaid
     with open("graph.mermaid", "wt", encoding="utf-8") as mermaid_file:
         mermaid_file.write(
@@ -297,6 +299,11 @@ def run_graph():
 
     if opts.verbose > 2:
         print(final_state)
+
+    print("[bold yellow]Sandbox command:")
+    print(
+        f"clear;uv run python -m sandbox -t {','.join([tool.name for tool in final_state['needed_tools']])} \"{final_state['user_request']}\""
+    )
 
     output_file = Path("./final_result.md")
     if opts.output_file:

@@ -11,7 +11,7 @@ import tomlkit
 from tomlkit.items import Table, Array
 
 from auto_tool_agent.graph.graph_shared import load_existing_tools, git_actor
-from auto_tool_agent.app_logging import agent_log, console
+from auto_tool_agent.app_logging import agent_log, console, global_vars
 from auto_tool_agent.graph.graph_state import GraphState
 from auto_tool_agent.lib.execute_command import execute_command
 from auto_tool_agent.opts import opts
@@ -26,9 +26,7 @@ def create_project_if_not_exist() -> None:
     if project_config.exists():
         return
 
-    console.log("[bold green]Project config not found, creating...")
-    if opts.verbose > 1:
-        agent_log.info("Project config not found, creating...")
+    global_vars.status_update("Project config not found, creating...")
     config = {"command": "uv", "params": ["init"], "folder": sandbox_dir}
     result = execute_command(config)
     if result["exit_code"] != 0:
@@ -56,14 +54,13 @@ def create_project_if_not_exist() -> None:
     if (sandbox_dir / ".git").exists():
         Repo(sandbox_dir)
     else:
-        console.log("[bold green]Initializing git repo...")
+        global_vars.status_update("Initializing git repo...")
         Repo.init(sandbox_dir)
 
 
 def sync_master_venv(dependencies: list[str]):
     """Sync the master venv."""
-    if opts.verbose > 2:
-        console.log("[bold green]Checking master venv...")
+    global_vars.status_update("Checking master venv...")
 
     sandbox_dir = Path(".").absolute()
 
@@ -88,6 +85,7 @@ def sync_master_venv(dependencies: list[str]):
         if len(to_install) > 0:
             if opts.verbose > 2:
                 console.log("[bold green]Master installing missing deps...", to_install)
+            global_vars.status_update("Master Installing missing dependencies...")
             config = {
                 "command": "uv",
                 "params": ["add"] + to_install,
@@ -106,7 +104,7 @@ def sync_master_venv(dependencies: list[str]):
 # pylint: disable=too-many-statements, too-many-branches
 def sync_venv(dependencies: list[str]):
     """Sync the sandbox venv."""
-    console.log("[bold green]Checking sandbox venv...")
+    global_vars.status_update("Checking sandbox venv...")
 
     sandbox_dir = opts.sandbox_dir
 
@@ -127,7 +125,11 @@ def sync_venv(dependencies: list[str]):
     if requested_deps != existing_deps:
         to_install = list(requested_deps - existing_deps)
         if len(to_install) > 0:
-            console.log("[bold green]Sandbox installing missing deps...", to_install)
+            if opts.verbose > 2:
+                console.log(
+                    "[bold green]Sandbox installing missing deps...", to_install
+                )
+            global_vars.status_update("Sandbox installing missing deps...")
             config = {
                 "command": "uv",
                 "params": ["add", "-U"] + to_install,
@@ -141,7 +143,9 @@ def sync_venv(dependencies: list[str]):
 
         to_remove = list(existing_deps - requested_deps)
         if len(to_remove) > 0:
-            console.log("[bold green]Sandbox removing unused deps...", to_remove)
+            if opts.verbose > 2:
+                console.log("[bold green]Sandbox removing unused deps...", to_remove)
+            global_vars.status_update("Sandbox removing unused deps...")
             config = {
                 "command": "uv",
                 "params": ["remove"] + to_remove,
@@ -152,20 +156,20 @@ def sync_venv(dependencies: list[str]):
                 agent_log.error(result)
                 raise ValueError("Failed to remove dependencies from project config.")
     else:
-        if opts.verbose > 1:
+        if opts.verbose > 2:
             agent_log.info("Sandbox dependencies already in sync.")
 
     # exit(1)
     repo = Repo(sandbox_dir)
     # if next(repo.iter_commits(), None) is None:
     if "main" not in [head.name for head in repo.heads]:
-        console.log("[bold green]Creating initial commit...")
+        global_vars.status_update("Creating initial commit...")
         repo.index.add(repo.untracked_files)
         repo.index.commit("Initial commit", author=git_actor, committer=git_actor)
 
     leftovers = repo.untracked_files + [item.a_path for item in repo.index.diff(None)]
     if len(leftovers) > 0:
-        console.log("[bold green]Commiting leftovers from last run...")
+        global_vars.status_update("Commiting leftovers from last run...")
         repo.index.add(leftovers)
         repo.index.commit(
             "Adding leftovers from last run", author=git_actor, committer=git_actor
@@ -173,10 +177,10 @@ def sync_venv(dependencies: list[str]):
 
     branch = opts.branch or "main"
     if branch in [head.name for head in repo.heads]:
-        console.log(f"[bold green]Checking out branch '{opts.branch}'...")
+        global_vars.status_update(f"Checking out branch '{opts.branch}'...")
         repo.git.checkout(opts.branch)
     else:
-        console.log(f"[bold green]Creating branch '{opts.branch}'...")
+        global_vars.status_update(f"Creating branch '{opts.branch}'...")
         if "main" in [head.name for head in repo.heads]:
             repo.git.checkout("main")
         repo.git.checkout("HEAD", b=branch)
@@ -189,19 +193,17 @@ def sync_venv(dependencies: list[str]):
 
 def setup_sandbox(state: GraphState):
     """setup_sandbox."""
-    console.log("[bold green]Checking sandbox...")
+    global_vars.status_update("Checking sandbox...")
     sandbox_dir = opts.sandbox_dir
 
     if state["clean_run"] and sandbox_dir.exists():
-        console.log("[bold green]Removing old sandbox...")
+        global_vars.status_update("Removing old sandbox...")
         if opts.verbose > 1:
             agent_log.info("Removing old sandbox: %s", sandbox_dir)
         shutil.rmtree(sandbox_dir)
 
     if not sandbox_dir.exists():
-        console.log("[bold green]Sandbox path not found, creating...")
-        if opts.verbose > 1:
-            agent_log.info("Sandbox path not found, creating...")
+        global_vars.status_update("Sandbox path not found, creating...")
         sandbox_dir.mkdir(parents=True, exist_ok=True)
 
     if opts.verbose > 1:

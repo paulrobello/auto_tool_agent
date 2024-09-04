@@ -76,6 +76,7 @@ dependencies = [
     "pydantic-settings>=2.4.0",
     "python-dotenv>=1.0.1",
     "html2markdown>=0.1.7",
+    "html2text>=2024.2.26",
 ]
 
 packages = [

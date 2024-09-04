@@ -6,7 +6,7 @@ import logging
 import os
 from pathlib import Path
 
-from rich.console import Console
+from rich.console import Console, RenderableType
 from rich.logging import RichHandler
 from rich.status import Status
 from typing_extensions import Optional
@@ -65,6 +65,22 @@ class GlobalVars:
         self.agent_log = agent_log
         self.fm_log = fm_log
         self.status = None
+
+    def status_update(self, new_status: RenderableType) -> None:
+        """Update the status."""
+        console.log(new_status)
+        if self.status is not None:
+            self.status.update(new_status)
+
+    def status_start(self) -> None:
+        """Start the status."""
+        if self.status is not None:
+            self.status.start()
+
+    def status_stop(self) -> None:
+        """Stop the status."""
+        if self.status is not None:
+            self.status.stop()
 
 
 global_vars = GlobalVars()

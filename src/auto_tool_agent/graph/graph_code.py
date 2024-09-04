@@ -12,11 +12,10 @@ from auto_tool_agent.graph.graph_sandbox import sync_venv
 from auto_tool_agent.graph.graph_shared import (
     build_chat_model,
     save_state,
-    load_existing_tools,
     git_actor,
     UserAbortError,
 )
-from auto_tool_agent.app_logging import agent_log, console
+from auto_tool_agent.app_logging import agent_log, console, global_vars
 from auto_tool_agent.graph.graph_state import (
     GraphState,
     ToolDescription,
@@ -29,7 +28,6 @@ from auto_tool_agent.opts import opts
 from auto_tool_agent.tool_data import tool_data
 from auto_tool_agent.tui.code_review import CodeReviewApp
 
-# * If a tools results are a list it should enable limiting the number of results by having a parameter named "limit" of type "Optional[int]" and it should default to None meaning no limit.
 CODE_RULES = """
 1. Function Structure:
    - Use well-formatted Python code with typed arguments.
@@ -50,6 +48,7 @@ CODE_RULES = """
    - If a tool's results are a list, include an optional "limit" parameter:
      - Use "limit: Optional[int] = None" in the function signature.
      - When None, it means no limit.
+   - If the "requests" module is used ensure a timeout of 10 seconds is set.
 
 5. Code Output:
    - Do not include any markdown formatting (e.g., ``` or ```python).
@@ -59,7 +58,7 @@ CODE_RULES = """
 
 def code_tool(tool_desc: ToolDescription) -> None:
     """Code the tool."""
-    console.log(f"[bold green]Creating tool: [bold yellow]{tool_desc.name}")
+    global_vars.status_update(f"Building tool: {tool_desc.name}")
 
     model = build_chat_model()
 
@@ -76,7 +75,9 @@ INSTRUCTIONS:
 
 IMPORTANT: The user will provide the tool name and description. Your job is to code it precisely as specified.
 """
-    code_result = model.with_config({"run_name": "Tool Coder"}).invoke(
+    code_result = model.with_config(
+        {"run_name": f"Tool Coder {tool_desc.name}"}
+    ).invoke(
         [
             ("system", system_prompt),
             (
@@ -132,7 +133,7 @@ def load_function_code(state: GraphState, tool_name: str) -> str:
 # pylint: disable=too-many-branches,too-many-statements
 def review_tools(state: GraphState):
     """Ensure that the tool is correct."""
-    state["_status"].update("Reviewing tools...")
+    global_vars.status_update("Reviewing tools...")
     repo = Repo(state["sandbox_dir"])
 
     system_prompt = f"""
@@ -173,7 +174,10 @@ IMPORTANT: Focus on correctness and adherence to the specified functionality. On
                     raise UserAbortError("Aborted review")
                 if not tool_def.needs_review:
                     continue
-            console.log(f"[bold green]Reviewing tool: [bold yellow]{tool_def.name}")
+
+            global_vars.status_update(
+                f"[bold green]Reviewing tool: [bold yellow]{tool_def.name}"
+            )
 
             tool_def.needs_review = False
 
@@ -192,7 +196,7 @@ IMPORTANT: Focus on correctness and adherence to the specified functionality. On
                 )
 
             result: CodeReviewResponse = structure_model.with_config(
-                {"run_name": "Review Tool"}
+                {"run_name": f"Review Tool {tool_def.name}"}
             ).invoke(
                 [
                     ("system", system_prompt),
@@ -244,7 +248,8 @@ IMPORTANT: Focus on correctness and adherence to the specified functionality. On
                 )
 
     if any_updated:
-        load_existing_tools()
+        pass
+        # load_existing_tools()
     save_state(state)
     return {"call_stack": ["review_tools"], "needed_tools": state["needed_tools"]}
 
@@ -272,15 +277,13 @@ def sync_deps_if_needed(state: GraphState) -> bool:
 
 def build_tool(state: GraphState):
     """Build the tool."""
-    state["_status"].update("Building tools...")
+    global_vars.status_update("Building tools...")
 
     repo = Repo(state["sandbox_dir"])
 
     needed_tools = state["needed_tools"]
     for tool_def in needed_tools:
         if not tool_def.existing:
-            if opts.verbose > 1:
-                agent_log.info("Building tool... %s", tool_def.name)
             code_tool(tool_def)
             tool_def.existing = True
             tool_def.needs_review = True

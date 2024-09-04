@@ -104,27 +104,34 @@ class CodeReviewResponse(BaseModel):
     """Code review response."""
 
     tool_valid: bool = Field(
-        description="Set to True if the tool is valid and False if it is not."
+        description="Set to True if the tool is valid and False if it is not.",
+        default=True,
     )
     tool_updated: bool = Field(
-        description="Set to True if the tool is updated and False if it is not."
+        description="Set to True if the tool is updated and False if it is not.",
+        default=False,
     )
     tool_issues: str = Field(
-        description="Describe the issues that required the tool to be updated."
+        description="Describe the issues that required the tool to be updated.",
+        default="",
     )
-    updated_tool_code: str = Field(description="Updated tool code.")
+    updated_tool_code: str = Field(description="Updated tool code.", default="")
 
 
 class PlanProjectResponse(BaseModel):
     """Tool needed response."""
 
     steps: List[str] = Field(
-        description="List of steps to accomplish the project.",
+        description="List of steps to accomplish the project in order they should be done.",
         default_factory=list,
     )
     needed_tools: List[ToolDescription] = Field(
         description="List of needed tools.",
         default_factory=list,
+    )
+    explanation: str = Field(
+        description="Explanation of the project.",
+        default="",
     )
 
 
