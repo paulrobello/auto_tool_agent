@@ -167,72 +167,78 @@ def create_graph():
     return workflow
 
 
+# pyright: disable=too-many-branches
 def main() -> None:
     """Main function."""
-    console.log(opts)
-
-    # Create the graph
-    graph = create_graph()
-
-    checkpointer = MemorySaver()
-
-    # Compile the graph
-    app = graph.compile(checkpointer=checkpointer)
-
-    initial_state: GraphState = {
-        "sandbox_dir": opts.sandbox_dir,
-        "user_request": opts.user_request,
-        "needed_tools": [],
-        "final_result": None,
-    }
-    load_existing_tools(initial_state)
-    needed_tools: list[ToolDescription] = []
-    tools = [t.strip() for t in opts.tools.split(",") if t.strip()]
-    for tool in tool_data.ai_tools.values():
-        if tool.name not in tools:
-            continue
-        tool_desc = ToolDescription(name=tool.name, description=tool.description)
-        needed_tools.append(tool_desc)
-    initial_state["needed_tools"] = needed_tools
-    if len(needed_tools) != len(tools):
-        console.log("[bold red]One ore more tools were not found!")
-        return
-    try:
-        final_state = app.invoke(
-            initial_state,
-            config={
-                "configurable": {
-                    "thread_id": session.id,
-                    "recursion_limit": opts.max_iterations,
-                }
-            },
-        )
-    except UserAbortError as user_abort:
-        console.log(f"[bold red]{user_abort}")
-        return
 
     if opts.verbose > 2:
-        print(final_state)
+        console.log(opts)
 
-    output_file = Path("./final_result.md")
-    if opts.output_file:
-        output_file = opts.output_file
-    output_file.write_text(final_state["final_result"].final_result, encoding="utf-8")
-    if output_file.exists() and output_file.stat().st_size > 2:
-        data = output_file.read_text(encoding="utf-8")
+    with console.status("[bold green]Working on tasks..."):
+        # Create the graph
+        graph = create_graph()
 
-        if opts.output_format == "markdown":
-            console.print(Markdown(data))
-        elif opts.output_format == "json":
-            console.print(highlight_json(data))
-        elif opts.output_format == "csv":
-            console.print(csv_to_table(data))
-        elif opts.output_format == "text":
-            console.print(data)
+        checkpointer = MemorySaver()
+
+        # Compile the graph
+        app = graph.compile(checkpointer=checkpointer)
+
+        initial_state: GraphState = {
+            "sandbox_dir": opts.sandbox_dir,
+            "user_request": opts.user_request,
+            "needed_tools": [],
+            "final_result": None,
+        }
+        load_existing_tools(initial_state)
+        needed_tools: list[ToolDescription] = []
+        tools = [t.strip() for t in opts.tools.split(",") if t.strip()]
+        for tool in tool_data.ai_tools.values():
+            if tool.name not in tools:
+                continue
+            tool_desc = ToolDescription(name=tool.name, description=tool.description)
+            needed_tools.append(tool_desc)
+        initial_state["needed_tools"] = needed_tools
+        if len(needed_tools) != len(tools):
+            console.log("[bold red]One ore more tools were not found!")
+            return
+        try:
+            final_state = app.invoke(
+                initial_state,
+                config={
+                    "configurable": {
+                        "thread_id": session.id,
+                        "recursion_limit": opts.max_iterations,
+                    }
+                },
+            )
+        except UserAbortError as user_abort:
+            console.log(f"[bold red]{user_abort}")
+            return
+
+        if opts.verbose > 2:
+            print(final_state)
+
+        output_file = Path("./final_result.md")
+        if opts.output_file:
+            output_file = opts.output_file
+        output_file.write_text(
+            final_state["final_result"].final_result, encoding="utf-8"
+        )
+        if output_file.exists() and output_file.stat().st_size > 2:
+            data = output_file.read_text(encoding="utf-8")
+
+            if opts.output_format == "markdown":
+                console.print(Markdown(data))
+            elif opts.output_format == "json":
+                console.print(highlight_json(data))
+            elif opts.output_format == "csv":
+                console.print(csv_to_table(data))
+            elif opts.output_format == "text":
+                console.print(data)
+            else:
+                console.print(data)
         else:
-            console.print(data)
-    else:
-        console.print("[bold red]No output was generated!")
+            console.print("[bold red]No output was generated!")
 
 
 if __name__ == "__main__":

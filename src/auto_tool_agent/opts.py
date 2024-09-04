@@ -8,10 +8,10 @@ import sys
 from typing import Literal, cast
 
 from argparse import ArgumentParser
-
+from dotenv import load_dotenv
 from auto_tool_agent import __application_binary__, __application_title__, __version__
 from auto_tool_agent.app_logging import log
-from auto_tool_agent.dotenv import load_dotenv
+
 from auto_tool_agent.lib.llm_providers import (
     provider_default_models,
     get_llm_provider_from_str,

@@ -8,7 +8,11 @@ from pathlib import Path
 from langchain_core.language_models import BaseChatModel
 
 from auto_tool_agent.app_logging import console
-from auto_tool_agent.graph.graph_shared import build_chat_model, load_existing_tools
+from auto_tool_agent.graph.graph_shared import (
+    build_chat_model,
+    load_existing_tools,
+    UserAbortError,
+)
 from auto_tool_agent.graph.graph_state import GraphState, PlanProjectResponse
 from auto_tool_agent.opts import opts
 from auto_tool_agent.tool_data import tool_data
@@ -75,8 +79,8 @@ You must follow all instructions below:
 * If a tool is listed as having errors it should have its needs_review field set to True.
 * Reason how each tool is relevant to the users request and in what order they should be used.
 * If additional tools are needed follow the instructions below:
-    * Give the new tools a name that is a valid Python identifier in snake_case
-    * Provide a detailed description
+    * Give the new tools a name that is a valid Python identifier in snake_case.
+    * Provide a detailed description.
     * Include them in the needed_tools list.
     * Set the field "existing" to False.
     * Dependencies will be filled in later do not include them.
@@ -103,6 +107,10 @@ You must follow all instructions below:
     )  # type: ignore
     for tool_def in result.needed_tools:
         tool_def.load()
+        if tool_data.bad_tools:
+            if tool_def.name in tool_data.bad_tools:
+                tool_def.needs_review = True
+
         if opts.review_tools:
             if not tool_def.needs_review:
                 console.log(
@@ -112,6 +120,12 @@ You must follow all instructions below:
     console.log("[bold green]Plan Steps:")
     for i, step in enumerate(result.steps):
         console.log(f"{i} - {step}")
+    console.log("[bold green]Needed Tools:")
+    for i, tool in enumerate(result.needed_tools):
+        console.log(
+            f"{i} - {tool.name} - Existing: {tool.existing} - Needs Review: {tool.needs_review}"
+        )
+
     if opts.interactive:
         response = console.input(
             "[bold green]Accept plan? [bold yellow][Y]/n [bold green]: \n"
@@ -119,7 +133,7 @@ You must follow all instructions below:
         console.log("response", response)
         if response != "" and response.lower() != "y":
             console.log("[bold red]Plan rejected. Aborting....")
-            raise ValueError("Plan rejected.")
+            raise UserAbortError("Plan rejected.")
     return {
         "call_stack": ["plan_project"],
         "needed_tools": result.needed_tools,

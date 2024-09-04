@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 import sys
 from typing import Literal, cast
@@ -117,6 +118,17 @@ def parse_args():
     )
 
     parser.add_argument(
+        "-d",
+        "--data_dir",
+        dest="data_dir",
+        type=Path,
+        default=Path(
+            os.environ.get("AUTO_TOOL_AGENT_DATA_DIR") or "~/.config/auto_tool_agent"
+        ).expanduser(),
+        help="The directory to store data and generated tools. Default is ~/.config/auto_tool_agent.",
+    )
+
+    parser.add_argument(
         "--sandbox_dir",
         dest="sandbox_dir",
         type=Path,
@@ -125,15 +137,18 @@ def parse_args():
     )
 
     parser.add_argument(
-        "-t" "--tools",
+        "-t",
+        "--tools",
         type=str,
         help="Comma separated list of tools for ai to use",
         required=True,
     )
 
     args = parser.parse_args()
-    data_dir = Path("..")
+    args.data_dir = args.data_dir.expanduser()
+    data_dir = args.data_dir
     config_file = data_dir / ".env"
+    console.print(config_file)
     args.sandbox_dir = (
         args.sandbox_dir and args.sandbox_dir.expanduser()
     ) or data_dir / "sandbox"

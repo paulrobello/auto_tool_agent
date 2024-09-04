@@ -34,9 +34,9 @@ CODE_RULES = """
 * A tools return type should be Union[str, Dict["result": THE_TYPE]].
 * Code must use "except Exception as error:" to catch all exceptions and return the error message as a string.
 * Tool must be annotated with "@tool" from langchain_core.tools import tool.
-* There should be only one function that has the @tool decorator.
+* There should be only one function that has a @tool decorator.
 * Tools should be reusable by adding parameters to configure the tool.
-* If a tool returns a list it should enable limiting the number of results, it should default to None meaning no limit.
+* If a tool returns a list it should enable limiting the number of results by having a parameter named "limit" of type "Optional[int]" and it should default to None meaning no limit.
 * Do not output markdown tags such as "```" or "```python".
 """
 
