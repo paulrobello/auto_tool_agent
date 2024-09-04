@@ -129,8 +129,6 @@ def get_results(state: GraphState):
         else:
             raise ValueError(f"Missing tool: {tool_def.name}")
 
-    if len(tools) == 0:
-        raise ValueError("No tools found")
     system_prompt = """
 # You are data analyst.
 Your job is get the requested information using the tools provided.

@@ -125,7 +125,6 @@ Be concise yet thorough in your explanations, focusing on the practical applicat
 
     user_has_input = True
     while user_has_input:
-        user_has_input = False
         result: PlanProjectResponse = structure_model.with_config(
             {"run_name": "Project Planner"}
         ).invoke(

@@ -51,9 +51,7 @@ def create_project_if_not_exist() -> None:
 
     shutil.copytree(Path("./sandbox_init"), sandbox_dir, dirs_exist_ok=True)
 
-    if (sandbox_dir / ".git").exists():
-        Repo(sandbox_dir)
-    else:
+    if not (sandbox_dir / ".git").exists():
         global_vars.status_update("Initializing git repo...")
         Repo.init(sandbox_dir)
 
