@@ -68,6 +68,10 @@ class MainScreen(Screen[None]):
             #Diff{
                 width: 1fr;
                 height: 8;
+                #DiffSyntax{
+                    width: 1fr;
+                    height: auto;
+                }
             }
             #DepsEditor{
                 width: 1fr;
@@ -122,6 +126,7 @@ class MainScreen(Screen[None]):
                     ):
                         yield Static(
                             self.diff,
+                            id="DiffSyntax",
                         )
                 yield TextArea.code_editor(
                     "\n".join(self.tool_def.dependencies),
@@ -149,7 +154,7 @@ class MainScreen(Screen[None]):
             )
         self.app.exit("Accept")
 
-    def confirm_save_response(self, res: Optional[bool]) -> None:
+    async def confirm_save_response(self, res: Optional[bool]) -> None:
         """Save code"""
         if not res:
             return

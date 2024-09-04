@@ -133,7 +133,7 @@ def sync_venv(dependencies: list[str]):
                 "params": ["add", "-U"] + to_install,
                 "folder": sandbox_dir,
             }
-            console.log(config)
+            # console.log(config)
             result = execute_command(config)
             if result["exit_code"] != 0:
                 console.log(result["stderr"])

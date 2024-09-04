@@ -29,14 +29,14 @@ from auto_tool_agent.opts import opts
 from auto_tool_agent.tool_data import tool_data
 from auto_tool_agent.tui.code_review import CodeReviewApp
 
+# * If a tools results are a list it should enable limiting the number of results by having a parameter named "limit" of type "Optional[int]" and it should default to None meaning no limit.
 CODE_RULES = """
 * Code must be well formatted, have typed arguments and have a doc string in the function body describing it and its arguments.
-* A tools return type should be Union[str, Dict["result": THE_TYPE]].
-* Code must use "except Exception as error:" to catch all exceptions and return the error message as a string.
+* A tools return type should be "Tuple[Optional[str], RESULT_TYPE]".
+* Code must use "except Exception as error:" and return the error message as the first element.
 * Tool must be annotated with "@tool" from langchain_core.tools import tool.
 * There should be only one function that has a @tool decorator.
 * Tools should be reusable by adding parameters to configure the tool.
-* If a tool returns a list it should enable limiting the number of results by having a parameter named "limit" of type "Optional[int]" and it should default to None meaning no limit.
 * Do not output markdown tags such as "```" or "```python".
 """
 
@@ -107,7 +107,7 @@ def load_function_code(state: GraphState, tool_name: str) -> str:
     return tool_path.read_text(encoding="utf-8")
 
 
-# pylint: disable=too-many-branches
+# pylint: disable=too-many-branches,too-many-statements
 def review_tools(state: GraphState):
     """Ensure that the tool is correct."""
     repo = Repo(state["sandbox_dir"])
@@ -182,13 +182,12 @@ Below are the rules for the code:
                 tool_def.code = result.updated_tool_code
                 tool_def.save()
 
-                # console.log(show_diff(repo, tool_def.tool_path))
+                diff = format_diff(repo, tool_def.tool_path)
+                console.log(diff)
                 repo.index.add([tool_def.tool_path, tool_def.metadata_path])
 
                 if opts.interactive:
-                    user_review = CodeReviewApp(
-                        tool_def, result, format_diff(repo, tool_def.tool_path)
-                    ).run()
+                    user_review = CodeReviewApp(tool_def, result, diff).run()
                     if user_review == "Accept":
                         any_updated = True
                     elif user_review == "Reject":

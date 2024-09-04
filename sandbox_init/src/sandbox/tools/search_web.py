@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 
-from typing import Union, List, Any
+from typing import Union, List, Any, Optional, Tuple
 from urllib.parse import quote
 import requests
 
@@ -12,7 +12,7 @@ from langchain_core.tools import tool
 
 
 @tool
-def search_web(query: str) -> Union[str, List[Any]]:
+def search_web(query: str) -> Tuple[Optional[str], List[Any]]:
     """
     Search the web using google search
 
@@ -20,7 +20,7 @@ def search_web(query: str) -> Union[str, List[Any]]:
         query (str): The search query
 
     Returns:
-        Union[str, List[Any]]: List of search results or error message
+        Tuple[Optional[str], List[Any]]: the first element is an error message if an error occurred, the second element is a list of search results
     """
 
     try:
@@ -31,6 +31,6 @@ def search_web(query: str) -> Union[str, List[Any]]:
 
         response = requests.get(url, stream=True, timeout=10)
         response.raise_for_status()
-        return response.json()["items"]
+        return None, response.json()["items"]
     except Exception as error:  # pylint: disable=broad-except
-        return str(error)
+        return str(error), []
