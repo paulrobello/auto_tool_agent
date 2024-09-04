@@ -31,13 +31,29 @@ from auto_tool_agent.tui.code_review import CodeReviewApp
 
 # * If a tools results are a list it should enable limiting the number of results by having a parameter named "limit" of type "Optional[int]" and it should default to None meaning no limit.
 CODE_RULES = """
-* Code must be well formatted, have typed arguments and have a doc string in the function body describing it and its arguments.
-* A tools return type should be "Tuple[Optional[str], RESULT_TYPE]".
-* Code must use "except Exception as error:" and return the error message as the first element.
-* Tool must be annotated with "@tool" from langchain_core.tools import tool.
-* There should be only one function that has a @tool decorator.
-* Tools should be reusable by adding parameters to configure the tool.
-* Do not output markdown tags such as "```" or "```python".
+1. Function Structure:
+   - Use well-formatted Python code with typed arguments.
+   - Include a docstring in the function body describing the function and its arguments.
+   - Annotate the main function with "@tool" from langchain_core.tools import tool.
+   - Only one function should have the @tool decorator.
+
+2. Return Type:
+   - Use "Tuple[Optional[str], RESULT_TYPE]" as the return type.
+   - The first element should be an error message (if any), the second the actual result.
+
+3. Error Handling:
+   - Use "except Exception as error:" for catching exceptions.
+   - Return the error message as the first element of the tuple.
+
+4. Tool Design:
+   - Make tools reusable by adding configurable parameters.
+   - If a tool's results are a list, include an optional "limit" parameter:
+     - Use "limit: Optional[int] = None" in the function signature.
+     - When None, it means no limit.
+
+5. Code Output:
+   - Do not include any markdown formatting (e.g., ``` or ```python).
+   - Output only the Python code for the tool.
 """
 
 
