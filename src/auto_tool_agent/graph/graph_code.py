@@ -44,6 +44,7 @@ CODE_RULES = """
 def code_tool(tool_desc: ToolDescription) -> None:
     """Code the tool."""
     console.log(f"[bold green]Creating tool: [bold yellow]{tool_desc.name}")
+
     model = build_chat_model()
 
     system_prompt = f"""
@@ -115,6 +116,7 @@ def load_function_code(state: GraphState, tool_name: str) -> str:
 # pylint: disable=too-many-branches,too-many-statements
 def review_tools(state: GraphState):
     """Ensure that the tool is correct."""
+    state["_status"].update("Reviewing tools...")
     repo = Repo(state["sandbox_dir"])
 
     system_prompt = f"""
@@ -254,6 +256,8 @@ def sync_deps_if_needed(state: GraphState) -> bool:
 
 def build_tool(state: GraphState):
     """Build the tool."""
+    state["_status"].update("Building tools...")
+
     repo = Repo(state["sandbox_dir"])
 
     needed_tools = state["needed_tools"]
