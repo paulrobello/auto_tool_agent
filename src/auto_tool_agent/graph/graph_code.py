@@ -131,21 +131,28 @@ Below are the rules for the code:
             tool_def.existing = True
             tool_def.format_code()
 
+            user_review = CodeReviewResponse()
             if opts.interactive:
-                user_review = CodeReviewApp(tool_def).run()
+                user_response = CodeReviewApp(tool_def, user_review).run()
                 tool_def.format_code()
 
-                if user_review == "Accept":
+                if user_response == "Accept":
                     any_updated = True
-                elif user_review == "Reject":
+                elif user_response == "Reject":
                     continue
-                elif user_review == "Abort":
+                elif user_response == "Abort":
                     raise UserAbortError("Aborted review")
                 if not tool_def.needs_review:
                     continue
             console.log(f"[bold green]Reviewing tool: [bold yellow]{tool_def.name}")
 
             tool_def.needs_review = False
+
+            if user_review.tool_issues:
+                user_msg = f"The user would also like the following changes or issues addressed:\n{user_review.tool_issues}\n\n"
+            else:
+                user_msg = ""
+
             error_msg = ""
             if tool_def.name in tool_data.bad_tools:
                 error_msg = (
@@ -165,6 +172,7 @@ Below are the rules for the code:
                         f"""
 {tool_def.code}
 {error_msg}
+{user_msg}
 """,
                     ),
                 ]
@@ -187,12 +195,12 @@ Below are the rules for the code:
                 repo.index.add([tool_def.tool_path, tool_def.metadata_path])
 
                 if opts.interactive:
-                    user_review = CodeReviewApp(tool_def, result, diff).run()
-                    if user_review == "Accept":
+                    user_response = CodeReviewApp(tool_def, result, diff).run()
+                    if user_response == "Accept":
                         any_updated = True
-                    elif user_review == "Reject":
+                    elif user_response == "Reject":
                         continue
-                    elif user_review == "Abort":
+                    elif user_response == "Abort":
                         raise UserAbortError("Aborted review")
 
                 repo.index.commit(
