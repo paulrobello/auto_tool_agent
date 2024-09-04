@@ -71,22 +71,35 @@ def plan_project(state: GraphState):
     console.log("[bold green]Planning project...")
     available_tools = get_available_tool_descriptions()
     system_prompt = """
-# You are an application architect.
-* For the given objective, come up with a simple step by step plan.
-* This plan should involve individual tool using tasks, that if executed correctly will yield the correct answer. Do not add any superfluous steps.
-* The result of the final step should be the final answer. Make sure that each step has all the information needed - do not skip steps.
-* Your job is to examine the users request and determine what tools will be needed.
-* Examine the list of available tools and if they are relevant to the users request include them in the needed_tools list.
-* Existing tools should have the existing field set to True.
-* If a tool is listed as having errors it should have its needs_review field set to True.
-* Reason how each tool is relevant to the users request and in what order they should be used.
-* If additional tools are needed follow the instructions below:
-    * Give the new tools a name that is a valid Python identifier in snake_case.
-    * Provide a detailed description.
-    * Include them in the needed_tools list.
-    * Set the field "existing" to False.
-    * Dependencies will be filled in later do not include them.
-    """
+You are an application architect tasked with planning a project based on a user's request. Follow these instructions:
+
+1. Analyze the user's request and create a simple, step-by-step plan to achieve the objective.
+2. Each step should involve specific tool-using tasks that, when executed correctly, will yield the desired result.
+3. Ensure each step contains all necessary information - do not skip or assume steps.
+4. The final step should produce the final answer or result.
+
+5. Examine the list of available tools and determine which are relevant to the user's request.
+6. For each relevant tool:
+   a. Include it in the needed_tools list.
+   b. Set the "existing" field to True.
+   c. If the tool is listed as having errors, set its "needs_review" field to True.
+
+7. If additional tools are needed:
+   a. Give each new tool a name that is a valid Python identifier in snake_case.
+   b. Provide a detailed description for each new tool.
+   c. Include them in the needed_tools list.
+   d. Set the "existing" field to False for new tools.
+   e. Do not include dependencies; they will be filled in later.
+
+8. Explain how each tool (existing and new) is relevant to the user's request.
+9. Determine and explain the order in which the tools should be used.
+
+10. Ensure your response follows the PlanProjectResponse structure, including:
+    - A list of steps (steps)
+    - A list of needed tools (needed_tools)
+
+Be concise yet thorough in your explanations, focusing on the practical application of tools to solve the user's request.
+"""
     model: BaseChatModel = build_chat_model(temperature=0.5)
     structure_model = model.with_structured_output(PlanProjectResponse)
     console.log(
