@@ -72,8 +72,10 @@ def plan_project(state: GraphState):
     available_tools = get_available_tool_descriptions()
     system_prompt = """
 # You are an application architect.
-Your job is to examine the users request and determine what tools will be needed.
-You must follow all instructions below:
+* For the given objective, come up with a simple step by step plan.
+* This plan should involve individual tool using tasks, that if executed correctly will yield the correct answer. Do not add any superfluous steps.
+* The result of the final step should be the final answer. Make sure that each step has all the information needed - do not skip steps.
+* Your job is to examine the users request and determine what tools will be needed.
 * Examine the list of available tools and if they are relevant to the users request include them in the needed_tools list.
 * Existing tools should have the existing field set to True.
 * If a tool is listed as having errors it should have its needs_review field set to True.
