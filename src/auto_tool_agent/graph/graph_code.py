@@ -56,6 +56,39 @@ CODE_RULES = """
 """
 
 
+def evaluate_dependencies(tool_desc: ToolDescription) -> None:
+    """Evaluate dependencies."""
+    global_vars.status_update(
+        f"[bold green]Evaluating dependencies for tool: [bold yellow]{tool_desc.name}"
+    )
+    model = build_chat_model()
+
+    structure_model = model.with_structured_output(DependenciesNeededResponse)
+
+    system_prompt = """
+# You are an expert in programming tools with Python.
+* Determine the 3rd party dependencies that are needed based on the list of imports provided by the user.
+* Return the list of package names.
+"""
+    tool_imports = tool_desc.code
+    deps_result: DependenciesNeededResponse = structure_model.with_config(
+        {"run_name": "Dependency Evaluator"}
+    ).invoke(
+        [
+            ("system", system_prompt),
+            (
+                "user",
+                tool_imports,
+            ),
+        ]
+    )  # pyright: ignore
+    deps_result.dependencies = [
+        dep.replace("_", "-") for dep in deps_result.dependencies
+    ]
+    deps_result.dependencies.sort()
+    tool_desc.dependencies = deps_result.dependencies
+
+
 def code_tool(tool_desc: ToolDescription) -> None:
     """Code the tool."""
     global_vars.status_update(f"Building tool: {tool_desc.name}")
@@ -90,38 +123,9 @@ Tool_Description: {tool_desc.description}
         ]
     )
     tool_desc.code = str(code_result.content)
-    if opts.verbose > 1:
+    if opts.verbose > 2:
         console.log("Tool code:", code_result.content)
-
-    console.log(
-        f"[bold green]Evaluating dependencies for tool: [bold yellow]{tool_desc.name}"
-    )
-    structure_model = model.with_structured_output(DependenciesNeededResponse)
-
-    system_prompt = """
-# You are an expert in programming tools with Python.
-* Examine the code and determine if any 3rd party dependencies are needed.
-* Return the list of package names.
-"""
-    deps_result: DependenciesNeededResponse = structure_model.with_config(
-        {"run_name": "Dependency Evaluator"}
-    ).invoke(
-        [
-            ("system", system_prompt),
-            (
-                "user",
-                f"""```python
-{code_result.content}
-```
-""",
-            ),
-        ]
-    )  # pyright: ignore
-    deps_result.dependencies = [
-        dep.replace("_", "-") for dep in deps_result.dependencies
-    ]
-    deps_result.dependencies.sort()
-    tool_desc.dependencies = deps_result.dependencies
+    evaluate_dependencies(tool_desc)
 
 
 def load_function_code(state: GraphState, tool_name: str) -> str:
