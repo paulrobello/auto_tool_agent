@@ -70,7 +70,7 @@ def evaluate_dependencies(tool_desc: ToolDescription) -> None:
 * Determine the 3rd party dependencies that are needed based on the list of imports provided by the user.
 * Return the list of package names.
 """
-    tool_imports = tool_desc.code
+    tool_imports = "\n".join(line for line in tool_desc.code.split("\n") if "import" in line)
     deps_result: DependenciesNeededResponse = structure_model.with_config(
         {"run_name": "Dependency Evaluator"}
     ).invoke(
