@@ -66,11 +66,13 @@ def evaluate_dependencies(tool_desc: ToolDescription) -> None:
     structure_model = model.with_structured_output(DependenciesNeededResponse)
 
     system_prompt = """
-# You are an expert in programming tools with Python.
+ROLE: You are an expert in programming with Python.
 * Determine the 3rd party dependencies that are needed based on the list of imports provided by the user.
-* Return the list of package names.
+* Return the list of package names. Ensure you transform underscores to hyphens.
 """
-    tool_imports = "\n".join(line for line in tool_desc.code.split("\n") if "import" in line)
+    tool_imports = "\n".join(
+        line for line in tool_desc.code.split("\n") if "import" in line
+    )
     deps_result: DependenciesNeededResponse = structure_model.with_config(
         {"run_name": "Dependency Evaluator"}
     ).invoke(
@@ -82,9 +84,7 @@ def evaluate_dependencies(tool_desc: ToolDescription) -> None:
             ),
         ]
     )  # pyright: ignore
-    deps_result.dependencies = [
-        dep.replace("_", "-") for dep in deps_result.dependencies
-    ]
+
     deps_result.dependencies.sort()
     tool_desc.dependencies = deps_result.dependencies
 
@@ -159,7 +159,6 @@ IMPORTANT: Focus on correctness and adherence to the specified functionality. On
 """
     model: BaseChatModel = build_chat_model(temperature=0.25)
     structure_model = model.with_structured_output(CodeReviewResponse)
-    any_updated: bool = False
     for tool_def in state["needed_tools"]:
         if tool_def.needs_review:
             tool_def.existing = True
@@ -171,7 +170,7 @@ IMPORTANT: Focus on correctness and adherence to the specified functionality. On
                 tool_def.format_code()
 
                 if user_response == "Accept":
-                    any_updated = True
+                    pass
                 elif user_response == "Reject":
                     continue
                 elif user_response == "Abort":
@@ -220,8 +219,7 @@ IMPORTANT: Focus on correctness and adherence to the specified functionality. On
                     f"[bold red]Tool review did not pass: [bold yellow]{tool_def.name}"
                 )
                 console.log(f"[bold red]{result.tool_issues}")
-
-                any_updated = True
+                evaluate_dependencies(tool_def)
 
                 tool_def.needs_review = True
                 tool_def.code = result.updated_tool_code
@@ -234,7 +232,7 @@ IMPORTANT: Focus on correctness and adherence to the specified functionality. On
                 if opts.interactive:
                     user_response = CodeReviewApp(tool_def, result, diff).run()
                     if user_response == "Accept":
-                        any_updated = True
+                        pass
                     elif user_response == "Reject":
                         continue
                     elif user_response == "Abort":
@@ -251,9 +249,6 @@ IMPORTANT: Focus on correctness and adherence to the specified functionality. On
                     f"[bold green]Tool review passed: [bold yellow]{tool_def.name}"
                 )
 
-    if any_updated:
-        pass
-        # load_existing_tools()
     save_state(state)
     return {"call_stack": ["review_tools"], "needed_tools": state["needed_tools"]}
 

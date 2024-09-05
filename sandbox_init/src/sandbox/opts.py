@@ -141,14 +141,14 @@ def parse_args():
         "--tools",
         type=str,
         help="Comma separated list of tools for ai to use",
-        required=True,
     )
 
     args = parser.parse_args()
+
     args.data_dir = args.data_dir.expanduser()
     data_dir = args.data_dir
     config_file = data_dir / ".env"
-    console.print(config_file)
+    console.log(config_file)
     args.sandbox_dir = (
         args.sandbox_dir and args.sandbox_dir.expanduser()
     ) or data_dir / "sandbox"
@@ -156,7 +156,7 @@ def parse_args():
     args.sandbox_dir.mkdir(parents=True, exist_ok=True)
     if config_file.exists():
         if args.verbose > 0:
-            console.log("Loading config file: %s", config_file)
+            console.log(f"[bold green]Loading config file: [bold yellow]{config_file}")
         load_dotenv(config_file)
     args.user_request = " ".join(args.user_request)
 
@@ -167,18 +167,28 @@ def parse_args():
         args.user_request = sys.stdin.read()
         if not args.user_request:
             parser.error("No user request provided.")
+    if not args.user_request:
+        prompt_file = args.sandbox_dir / "prompt.md"
+        if not args.user_prompt and prompt_file.exists():
+            args.user_prompt = prompt_file
+        if args.user_prompt:
+            args.user_request = cast(Path, args.user_prompt).read_text(encoding="utf-8")
 
-    if args.user_prompt:
-        args.user_request = cast(Path, args.user_prompt).read_text(encoding="utf-8")
     if args.user_request is not None:
         args.user_request = args.user_request.strip()
-    if not args.user_prompt and not args.user_request:
+    if not args.user_request:
         parser.error("Either --user_prompt or --user_request must be specified.")
 
     args.model_name = (
         args.model_name
         or provider_default_models[get_llm_provider_from_str(args.provider)]
     )
+
+    tools_file = args.sandbox_dir / "tools.txt"
+    if not args.tools and tools_file.exists():
+        args.tools = tools_file.read_text(encoding="utf-8").strip()
+    if not args.tools:
+        raise ValueError("No tools specified.")
     return args
 
 

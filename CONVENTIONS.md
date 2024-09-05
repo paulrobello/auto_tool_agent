@@ -1,0 +1,4 @@
+- use types where possible
+- if requests module is used ensure a timeout of 10 seconds is set
+- use module docstrings
+- use function docstrings
