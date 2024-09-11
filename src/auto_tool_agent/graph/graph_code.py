@@ -15,6 +15,7 @@ from auto_tool_agent.graph.graph_shared import (
     git_actor,
     UserAbortError,
     commit_leftover_changes,
+    AgentAbortError,
 )
 from auto_tool_agent.app_logging import agent_log, console, global_vars
 from auto_tool_agent.graph.graph_state import (
@@ -22,6 +23,7 @@ from auto_tool_agent.graph.graph_state import (
     ToolDescription,
     DependenciesNeededResponse,
     CodeReviewResponse,
+    PlanProjectResponse,
 )
 from auto_tool_agent.lib.output_utils import format_diff
 from auto_tool_agent.lib.session import session
@@ -90,7 +92,7 @@ ROLE: You are an expert in programming with Python.
     tool_desc.dependencies = deps_result.dependencies
 
 
-def code_tool(tool_desc: ToolDescription) -> None:
+def code_tool(tool_desc: ToolDescription, plan: PlanProjectResponse) -> None:
     """Code the tool."""
     global_vars.status_update(f"Building tool: {tool_desc.name}")
 
@@ -102,11 +104,13 @@ ROLE: You are an expert Python programmer.
 
 TASK: Create a Python tool based on the provided name and description.
 
+PROJECT PLAN: {plan.explanation}
+
 INSTRUCTIONS:
 1. Follow ALL rules below:
 {CODE_RULES}
 2. Output ONLY the code. No markdown or additional formatting.
-3. Implement EXACTLY the functionality described in the Tool_Description.
+3. Efficiently implement the functionality described in the Tool_Description.
 4. Output any 3rd party dependencies that are needed.
 IMPORTANT: The user will provide the tool name and description. Your job is to code it precisely as specified.
 """
@@ -143,17 +147,21 @@ def review_tools(state: GraphState):
     """Ensure that the tool is correct."""
     global_vars.status_update("Reviewing tools...")
     repo = Repo(state["sandbox_dir"])
+    if not state["plan"]:
+        raise AgentAbortError("Aborted review due to empty plan")
 
     system_prompt = f"""
 ROLE: You are a Python code review expert.
 
 TASK: Examine the provided Python file and assess its syntax and logic for correctness.
 
+PROJECT PLAN: {state["plan"].explanation}
+
 RULES:
 {CODE_RULES}
 
 REVIEW INSTRUCTIONS:
-1. ONLY update the tool if it is incorrect.
+1. ONLY update the tool if it is incorrect or the PROJECT PLAN requests it.
 2. If an update is needed:
    a. Write in Python following the above rules.
    b. Ensure it implements the functionality described in the docstring.
@@ -165,7 +173,6 @@ IMPORTANT: Focus on correctness and adherence to the specified functionality. On
     structure_model = model.with_structured_output(CodeReviewResponse)
     for tool_def in state["needed_tools"]:
         if tool_def.needs_review:
-            tool_def.existing = True
             tool_def.format_code()
 
             user_review = CodeReviewResponse()
@@ -217,7 +224,8 @@ IMPORTANT: Focus on correctness and adherence to the specified functionality. On
                     ),
                 ]
             )  # type: ignore
-
+            if not result:
+                raise AgentAbortError("Aborted review due to empty response")
             if result.tool_updated and result.updated_tool_code:
                 console.log(
                     f"[bold red]Tool review did not pass: [bold yellow]{tool_def.name}"
@@ -280,13 +288,15 @@ def build_tool(state: GraphState):
     """Build the tool."""
     global_vars.status_update("Building tools...")
 
+    if not state["plan"]:
+        raise AgentAbortError("Aborted tool build due to empty plan")
+
     repo = Repo(state["sandbox_dir"])
 
     needed_tools = state["needed_tools"]
     for tool_def in needed_tools:
         if not tool_def.existing:
-            code_tool(tool_def)
-            tool_def.existing = True
+            code_tool(tool_def, state["plan"])
             tool_def.needs_review = True
             tool_def.save()
             repo.index.add([tool_def.tool_path, tool_def.metadata_path])

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from typing import TypedDict, Annotated, List, Optional, Any
+from typing import TypedDict, Annotated, List, Optional, Any, Literal
 import black
 
 from pydantic import BaseModel, Field
@@ -19,19 +19,21 @@ class ToolDescription(BaseModel):
         description="Name of the tool. Should be a valid Python identifier in snake_case."
     )
     description: str = Field(
-        description="Detailed description of the tool and its parameters."
+        description="Detailed description of the tool, its parameters and output."
     )
     code: str = Field(description="Code for the tool.", default="")
     dependencies: list[str] = Field(
-        description="List of 3rd party pyton packages required to run this tool.",
+        description="List of 3rd party python packages required to run this tool.",
         default_factory=list,
     )
-    existing: bool = Field(
-        description="Set to True if this tool already exists or False if it needs to be built."
-    )
     needs_review: bool = Field(
-        description="Set to True if this tool needs review or False if it does not need review."
+        description="Set to True if this tool needs review otherwise or."
     )
+
+    @property
+    def existing(self) -> bool:
+        """Check if the tool already exists."""
+        return self.tool_path.exists()
 
     @property
     def tool_path(self) -> Path:
@@ -56,13 +58,18 @@ class ToolDescription(BaseModel):
         )
 
     def format_code(self) -> bool:
-        """Format the code."""
+        """
+        Format the code if needed.
+
+        Returns:
+            bool: True if the code was changed.
+        """
         old_code = self.code
         self.code = black.format_str(self.code, mode=black.Mode())
         return old_code != self.code
 
     def save(self) -> None:
-        """Save the tool."""
+        """Save the tool code and metadata. Creating folders if needed."""
         self.format_code()
         self.tool_path.parent.mkdir(parents=True, exist_ok=True)
         self.tool_path.write_text(self.code, encoding="utf-8")
@@ -75,8 +82,7 @@ class ToolDescription(BaseModel):
         if not self.metadata_path.exists():
             if self.tool_path.exists():
                 self.code = self.tool_path.read_text(encoding="utf-8")
-                self.existing = True
-                self.needs_review = False
+                # self.needs_review = False
                 self.dependencies = []
                 return True
             return False
@@ -85,18 +91,16 @@ class ToolDescription(BaseModel):
         )
         self.dependencies = meta.dependencies
         self.code = meta.code
-        self.existing = True
-        self.needs_review = False
+        # self.needs_review = False
         return True
 
     def delete(self):
-        """Delete the tool."""
+        """Delete the tool and its metadata."""
         self.tool_path.unlink(missing_ok=True)
         self.metadata_path.unlink(missing_ok=True)
         self.code = ""
         self.dependencies = []
 
-        self.existing = False
         self.needs_review = False
 
 
@@ -121,6 +125,12 @@ class CodeReviewResponse(BaseModel):
 class PlanProjectResponse(BaseModel):
     """Tool needed response."""
 
+    user_request: str = Field(
+        description="The user's request.",
+    )
+    explanation: str = Field(
+        description="Explanation of the project.",
+    )
     steps: List[str] = Field(
         description="List of steps to accomplish the project in order they should be done.",
         default_factory=list,
@@ -129,10 +139,42 @@ class PlanProjectResponse(BaseModel):
         description="List of needed tools.",
         default_factory=list,
     )
-    explanation: str = Field(
-        description="Explanation of the project.",
-        default="",
-    )
+
+    def to_markdown(self) -> str:
+        """Convert to markdown."""
+        plan: List[str] = [
+            "# Project Plan",
+            "",
+            "## User Request",
+            "",
+            self.user_request,
+            "",
+            "## Plan Explanation",
+            "",
+            self.explanation,
+            "",
+            "## Steps",
+            "",
+        ] + [
+            f"- {step}" for step in self.steps  # pylint: disable=not-an-iterable
+        ]  # type: ignore
+        plan.append("## Need Tools")
+        for tool in self.needed_tools:  # pylint: disable=not-an-iterable
+            plan.append(f"- {tool.name}")
+            plan.append(f"  - {tool.description}")
+
+        return "\n".join(plan) + "\n"
+
+    def save(self, path: Optional[Path] = None) -> None:
+        """Save plan to a file as markdown."""
+        plan_file = Path() / "plan.md"
+        plan_file.write_text(self.to_markdown(), encoding="utf-8")
+
+        plan_file = Path(opts.sandbox_dir) / "README.md"
+        plan_file.write_text(self.to_markdown(), encoding="utf-8")
+
+        if path:
+            path.write_text(self.to_markdown(), encoding="utf-8")
 
 
 class DependenciesNeededResponse(BaseModel):
@@ -148,8 +190,10 @@ class FinalResultErrorResponse(BaseModel):
     """Final result error response."""
 
     tool_name: str = Field(description="Name of the tool.")
-    error_message: str = Field(
-        description="Error message if the tool failed to execute."
+    error_message: str = Field(description="Error message returned from the tool.")
+    needs_review: bool = Field(description="Set to true if the tool needs review.")
+    error_classifier: Literal["authentication", "syntax", "parameter", "parsing"] = (
+        Field(description="Type of error returned from the tool.")
     )
 
 
@@ -159,7 +203,7 @@ class FinalResultResponse(BaseModel):
     final_result: Any = Field(description="Final result of the tool.")
     error: Optional[FinalResultErrorResponse] = Field(
         default=None,
-        description="Error message if the tool failed to execute.",
+        description="Error info.",
     )
 
 
@@ -174,6 +218,7 @@ class GraphState(TypedDict):
     call_stack: Annotated[list[str], add_node_call]
     clean_run: bool
     sandbox_dir: Path
+    plan: Optional[PlanProjectResponse]
     dependencies: list[str]
     user_request: str
     needed_tools: List[ToolDescription]

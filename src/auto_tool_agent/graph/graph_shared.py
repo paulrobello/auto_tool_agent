@@ -57,8 +57,9 @@ def save_state(state: GraphState):
         json.dump(state, f, indent=2, default=str)
     if state["final_result"]:
         if opts.output_file:
-            with open(opts.output_file, "wt", encoding="utf-8") as f:
-                f.write(state["final_result"].final_result)
+            opts.output_file.write_text(
+                state["final_result"].final_result, encoding="utf-8"
+            )
         else:
             with open(
                 f"final_result{format_to_extension[opts.output_format]}",
@@ -81,6 +82,10 @@ class AutoToolAgentError(Exception):
 
 class UserAbortError(AutoToolAgentError):
     """User abort error."""
+
+
+class AgentAbortError(AutoToolAgentError):
+    """Agent abort error."""
 
 
 git_actor = Actor("Auto Agent", "auto_agent@pardev.net")

@@ -85,18 +85,19 @@ INSTRUCTIONS:
 5. Examine the list of available tools and determine which are relevant to the user's request.
 6. For each relevant tool:
    a. Include it in the needed_tools list.
-   b. Set the "existing" field to True.
-   c. If the tool is listed as having errors, set its "needs_review" field to True.
+   b. If the tool is listed as having errors, set its "needs_review" field to True.
+   c. If the user has requested changes to the tool, set its "needs_review" field to True.
+   d. When a tool change or review is needed *DO NOT* create any new tools. The code review system will handle that.
 
-7. If additional tools are needed they MUST follow these instructions:
+7. If additional tools are needed they *MUST* follow these instructions:
    a. Give each new tool a name that is a valid Python identifier in snake_case.
    b. Provide a detailed description for each new tool.
    c. Include them in the needed_tools list.
-   d. Set the "existing" field to False for new tools.
-   e. Do not include dependencies; they will be filled in later.
-   f. Any HTML content that is fetched should be converted to markdown in same tool that fetched it.
+   d. Do not include dependencies or code; they will be filled in later.
+   e. Any HTML content that is fetched should be converted to markdown in same tool that fetched it.
+   f. Do not create extra tools to convert to Markdown or CSV, that will be handled later.
 
-8. Explain how each tool (existing and new) is relevant to the user's request.
+8. Explain how each needed tool is relevant to the user's request.
 9. Determine and explain the order in which the tools should be used.
 
 10. Ensure your response follows the PlanProjectResponse structure, including:
@@ -186,8 +187,10 @@ Be concise yet thorough in your explanations, focusing on the practical applicat
             if response != "y":
                 console.log("[bold red]Plan rejected. Aborting....")
                 raise UserAbortError("Plan rejected.")
+        result.save()
         return {
             "call_stack": ["plan_project"],
+            "plan": result,
             "needed_tools": result.needed_tools,
         }
     raise ValueError("Failed to plan project.")

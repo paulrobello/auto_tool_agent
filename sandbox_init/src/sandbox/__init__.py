@@ -17,7 +17,7 @@ __maintainer__ = "Paul Robello"
 __email__ = "probello@gmail.com"
 __version__ = "0.0.1"
 __application_title__ = "AI TOOLS Agent"
-__application_binary__ = "auto_tool_agent"
+__application_binary__ = "sandbox"
 __licence__ = "MIT"
 
 

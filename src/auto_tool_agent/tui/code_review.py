@@ -153,7 +153,6 @@ class MainScreen(Screen[None]):
     async def accept(self) -> None:
         """Accept the changes"""
         self.code_review.tool_valid = True
-        self.tool_def.existing = True
 
         if self.updated:
             await self.app.push_screen(

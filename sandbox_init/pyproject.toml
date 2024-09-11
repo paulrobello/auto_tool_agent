@@ -1,0 +1,90 @@
+[project]
+name = "sandbox"
+version = "0.1.0"
+description = "AI Auto Tool Agent"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "asyncio>=3.4.3",
+    "black>=24.8.0",
+    "langchain>=0.2.14",
+    "langchain-anthropic>=0.1.23",
+    "langchain-community>=0.2.12",
+    "langchain-core>=0.2.34",
+    "langchain-google-genai>=1.0.10",
+    "langchain-groq>=0.1.9",
+    "langchain-ollama>=0.1.1",
+    "langchain-openai>=0.1.22",
+    "langgraph>=0.2.14",
+    "markdownify>=0.13.1",
+    "pydantic>=2.8.2",
+    "pydantic-core>=2.20.1",
+    "requests>=2.32.3",
+    "rich>=13.7.1",
+    "simplejson>=3.19.3",
+    "watchdog>=4.0.2",
+    "python-dotenv>=1.0.1",
+    "langchain-aws>=0.1.18",
+    "boto3>=1.34.0",
+    "botocore>=1.34.0",
+]
+packages = ["src/sandbox"]
+
+[project.scripts]
+sandbox = "sandbox.__main__:main"
+
+[tool.setuptools.package-data]
+sandbox = [
+    "py.typed",
+    "*/*.png",
+    "*/*.md",
+    "*/*.tcss",
+    "*.png",
+    "*.md",
+    "*.tcss"
+]
+
+[build-system]
+requires = ["hatchling", "wheel"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "build>=1.2.1",
+    "twine>=5.1.1",
+    "black>=24.8.0",
+    "pylint>=3.2.7",
+    "pyright>=1.1.379",
+    "pre-commit>=3.8.0",
+]
+
+[tool.hatch.version]
+path = "src/sandbox/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sandbox"]
+include = [
+    "*.py",
+    "py.typed",
+    "*.png",
+    "*.md",
+    "*.tcss",
+    "*.png",
+    "*.md",
+    "*.tcss"
+]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/sandbox",
+    "LICENSE",
+    "README.md",
+    "extraction_prompt.md",
+    "pyproject.toml"
+]
+exclude = [
+    "*.pyc",
+    "__pycache__",
+    "*.so",
+    "*.dylib"
+]

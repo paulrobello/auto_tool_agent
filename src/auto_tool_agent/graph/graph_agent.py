@@ -24,6 +24,7 @@ from auto_tool_agent.graph.graph_results import (
     get_results_pre_check,
     has_needed_tools,
     get_results,
+    check_results,
 )
 from auto_tool_agent.graph.graph_sandbox import setup_sandbox
 from auto_tool_agent.graph.graph_shared import (
@@ -55,7 +56,7 @@ workflow.add_conditional_edges("plan_project", is_tool_needed)
 workflow.add_edge("build_tool", "review_tools")
 workflow.add_edge("review_tools", "get_results_pre_check")
 workflow.add_conditional_edges("get_results_pre_check", has_needed_tools)
-workflow.add_edge("get_results", "format_output")
+workflow.add_conditional_edges("get_results", check_results)
 workflow.add_edge("format_output", "save_state")
 workflow.add_edge("save_state", END)
 
@@ -100,30 +101,32 @@ def run_graph():
     initial_state: GraphState = {
         "clean_run": opts.clear_sandbox,
         "sandbox_dir": opts.sandbox_dir,
+        "plan": None,
         "dependencies": old_state.get(
             "dependencies",
             [
-                "asyncio",
+                "asyncio>=3.4.3",
                 "boto3>=1.34.0",
-                "langchain",
-                "langchain-core",
-                "langchain-community",
-                "langchain-ollama",
-                "langchain-openai",
-                "langchain-anthropic",
-                "langchain-google-genai",
-                "langchain-groq",
+                "botocore>=1.34.0",
+                "langchain>=0.2.14",
+                "langchain-core>=0.2.34",
+                "langchain-community>=0.2.12",
+                "langchain-ollama>=0.1.1",
+                "langchain-openai>=0.1.22",
+                "langchain-anthropic>=0.1.23",
+                "langchain-google-genai>=1.0.10",
+                "langchain-groq>=0.1.9",
                 "langchain-aws>=0.1.18",
-                "langgraph",
-                "markdownify",
-                "pydantic",
-                "pydantic-core",
-                "requests",
-                "rich",
-                "black",
-                "watchdog",
+                "langgraph>=0.2.14",
+                "markdownify>=0.13.1",
+                "pydantic>=2.8.2",
+                "pydantic-core>=2.20.1",
+                "requests>=2.32.3",
+                "rich>=13.7.1",
+                "black>=24.8.0",
+                "watchdog>=4.0.2",
                 "python-dotenv>=1.0.1",
-                "simplejson",
+                "simplejson>=3.19.3",
             ],
         ),
         "user_request": opts.user_request,

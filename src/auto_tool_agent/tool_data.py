@@ -14,7 +14,7 @@ class ToolData:
 
     last_tool_load: float = 0
     ai_tools: dict[str, BaseTool] = field(default_factory=dict)
-    bad_tools: dict[str, Exception] = field(default_factory=dict)
+    bad_tools: dict[str, Exception | str] = field(default_factory=dict)
 
     def add_good_tool(self, name: str, tool: BaseTool) -> None:
         """Add a good tool."""

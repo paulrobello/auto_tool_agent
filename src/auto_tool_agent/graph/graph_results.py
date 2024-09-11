@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Literal
+import simplejson as json
 
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_core.language_models import BaseChatModel
@@ -14,8 +15,12 @@ from auto_tool_agent.graph.graph_shared import (
     load_existing_tools,
     build_chat_model,
     commit_leftover_changes,
+    AgentAbortError,
 )
-from auto_tool_agent.graph.graph_state import GraphState, FinalResultResponse
+from auto_tool_agent.graph.graph_state import (
+    GraphState,
+    FinalResultResponse,
+)
 from auto_tool_agent.opts import opts
 from auto_tool_agent.tool_data import tool_data
 
@@ -80,6 +85,25 @@ def has_needed_tools(
     return "get_results"
 
 
+def check_results(
+    state: GraphState,
+) -> Literal["review_tools", "format_output", "save_state"]:
+    """Check if results contain errors that need review."""
+    final_result = state["final_result"]
+    if not final_result:
+        raise AgentAbortError("Aborted check_results due to empty final_result")
+
+    if final_result.error:
+        if final_result.error.error_classifier == "authentication":
+            console.log("[bold red]Authentication error. Exiting...")
+            return "save_state"
+        console.log(
+            f"[bold red]Error returned from tool: [bold yellow]{final_result.error.tool_name}. [/bold yellow]Reviewing..."
+        )
+        return "review_tools"
+    return "format_output"
+
+
 def get_results(state: GraphState):
     """Use tools to get results."""
     global_vars.status_update("Getting results...")
@@ -96,19 +120,27 @@ def get_results(state: GraphState):
             raise ValueError(f"Missing tool: {tool_def.name}")
 
     system_prompt = """
-# You are data analyst.
-Your job is get the requested information using the tools provided.
-You must follow all instructions below:
+ROLE: You are data analyst.
+
+TASK: Get the requested information using the tools provided.
+
+INSTRUCTIONS:
 * Use tools available to you.
 * Return all information provided by the tools unless asked otherwise.
 * Do not make up information.
-* If a tool returns an error, return the tool name and the error message
-* Return the results in the following JSON format. Do not include markdown or formatting such as ```json:
+* If a tool returns an error, *ONLY* return the `tool_name`, `error_message`, `needs_review` and `error_classifier`.
+* Only set `needs_review` to True if error is not related to authentication, profile or token.
+* Ensure you classify errors as one of `authentication`, `syntax`, `parameter`, `parsing`.
+* Do not include a preamble, apology or markdown formatting such as ```json
+* Results *MUST* be in the following JSON format:
 {{
     "final_result": "string",
+    "next_step": "string",
     "error": {{
         "tool_name": "string",
-        "error_message": "error_message"
+        "error_message": "error_message",
+        "needs_review": bool,
+        error_classifier: Literal["authentication", "syntax", "parameter", "parsing"]
     }}
 }}"
 """
@@ -128,23 +160,66 @@ You must follow all instructions below:
         agent=agent,
         tools=tools,
         verbose=False,
-        return_intermediate_steps=True,  # pyright: ignore [reportArgumentType]
+        handle_parsing_errors=False,
+        return_intermediate_steps=False,  # pyright: ignore [reportArgumentType]
     )
     ret = agent_executor.invoke({"chat_history": [], "input": state["user_request"]})
+    # console.print("= RES =" * 10)
+    # console.print(ret)
+    ret = ret["output"]
+    if isinstance(ret, list):
+        ret = ret[0]
+    if isinstance(ret, dict) and "text" in ret:
+        ret = ret["text"]
+    if isinstance(ret, str):
+        try:
+            final_result_response = FinalResultResponse(**json.loads(ret))
+            if final_result_response.error:
+                tool_name = (
+                    final_result_response.error.tool_name  # pylint: disable=no-member
+                )
+                for tool_def in state["needed_tools"]:
+                    if tool_def.name == tool_name:
+                        tool_def.needs_review = True
+                        tool_data.bad_tools[tool_name] = (
+                            final_result_response.error.error_message  # pylint: disable=no-member
+                        )
+
+            return {
+                "call_stack": ["get_results"],
+                "final_result": final_result_response,
+                "needed_tools": state["needed_tools"],
+            }
+        except Exception as _:  # pylint: disable=broad-except
+            pass
+            # console.print(f"Error parsing JSON: {e}")
+
+    structure_model = build_chat_model(temperature=0).with_structured_output(
+        FinalResultResponse
+    )
+
+    chat_history = [
+        (
+            "system",
+            """
+        ROLE: You are a data analyst.
+        TASK: Get results and errors from the JSON portion of the user message and call tool PlanProjectResponse
+        """,
+        ),
+        ("user", ret),
+    ]
+    final_result_response: FinalResultResponse = structure_model.with_config(
+        {"run_name": "Results output formatter"}
+    ).invoke(
+        chat_history
+    )  # type: ignore
+    console.print("= RES FMT =" * 10)
+    console.print(final_result_response)
     # for step in ret["intermediate_steps"]:
     #     (tool, tool_return) = step
     #     console.print(f"[bold green]Tool: {tool.tool}[/bold green]\n", tool_return)
-    output = ret["output"]
-    # console.log("output: ============\n", output)
-    try:
-        if isinstance(output, str):
-            final_result_response = FinalResultResponse.model_validate_json(output)
-        else:
-            final_result_response = FinalResultResponse.model_validate(output)
-    except Exception as _:  # pylint: disable=broad-except
-        # TODO dump output for user intervention
-        final_result_response = FinalResultResponse(final_result=output)
     return {
         "call_stack": ["get_results"],
         "final_result": final_result_response,
+        "needed_tools": state["needed_tools"],
     }

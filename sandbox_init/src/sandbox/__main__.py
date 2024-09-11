@@ -24,8 +24,8 @@ from sandbox.tool_data import tool_data
 def get_results(state: GraphState):
     """Use tools to get results."""
     console.log("[bold green]Getting results...")
-    console.log("needed_tools:", state["needed_tools"])
-    console.log("ai_tools:", tool_data)
+    console.log("needed_tools:", [tool.name for tool in state["needed_tools"]])
+    console.log("ai_tools:", [tool.name for tool in tool_data.ai_tools.values()])
     tools = []
     for tool_def in state["needed_tools"]:
         if tool_def.name in tool_data.ai_tools:
