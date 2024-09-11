@@ -213,8 +213,8 @@ INSTRUCTIONS:
     ).invoke(
         chat_history
     )  # type: ignore
-    console.print("= RES FMT =" * 10)
-    console.print(final_result_response)
+    # console.print("= RES FMT =" * 10)
+    # console.print(final_result_response)
     # for step in ret["intermediate_steps"]:
     #     (tool, tool_return) = step
     #     console.print(f"[bold green]Tool: {tool.tool}[/bold green]\n", tool_return)

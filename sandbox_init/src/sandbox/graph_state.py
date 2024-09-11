@@ -27,7 +27,8 @@ class ToolDescription(BaseModel):
         default_factory=list,
     )
     needs_review: bool = Field(
-        description="Set to True if this tool needs review otherwise or."
+        description="Set to True if this tool needs review otherwise or.",
+        default=False,
     )
 
     @property
