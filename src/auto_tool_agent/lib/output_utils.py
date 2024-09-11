@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import csv
 import io
-import os.path
 from pathlib import Path
 from typing import Optional
 
@@ -33,11 +32,12 @@ def csv_to_table(data: str, title: str = "Results") -> Table:
     return table
 
 
-def csv_file_to_table(csv_file: str, title: Optional[str] = None) -> Table:
+def csv_file_to_table(csv_file: Path, title: Optional[str] = None) -> Table:
     """Convert csv file to a table."""
-    with open(csv_file, "rt", encoding="utf-8", newline="") as data_file:
-        data = data_file.read()
-    return csv_to_table(data, os.path.basename(csv_file) if title is None else title)
+    return csv_to_table(
+        csv_file.read_text(encoding="utf-8").strip(),
+        csv_file.name if title is None else title,
+    )
 
 
 def highlight_json(data: str) -> Syntax:
@@ -45,11 +45,9 @@ def highlight_json(data: str) -> Syntax:
     return Syntax(data, "json", background_color="default")
 
 
-def highlight_json_file(json_file: str) -> Syntax:
+def highlight_json_file(json_file: Path) -> Syntax:
     """Highlight JSON data."""
-    with open(json_file, "rt", encoding="utf-8", newline="") as data_file:
-        data = data_file.read().strip()
-    return highlight_json(data)
+    return highlight_json(json_file.read_text(encoding="utf-8").strip())
 
 
 def format_diff(repo: Repo, file_path: Path) -> Syntax:

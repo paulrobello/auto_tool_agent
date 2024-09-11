@@ -14,6 +14,7 @@ from auto_tool_agent.graph.graph_shared import (
     save_state,
     git_actor,
     UserAbortError,
+    commit_leftover_changes,
 )
 from auto_tool_agent.app_logging import agent_log, console, global_vars
 from auto_tool_agent.graph.graph_state import (
@@ -94,6 +95,7 @@ def code_tool(tool_desc: ToolDescription) -> None:
     global_vars.status_update(f"Building tool: {tool_desc.name}")
 
     model = build_chat_model()
+    structure_model = model.with_structured_output(ToolDescription)
 
     system_prompt = f"""
 ROLE: You are an expert Python programmer.
@@ -105,10 +107,10 @@ INSTRUCTIONS:
 {CODE_RULES}
 2. Output ONLY the code. No markdown or additional formatting.
 3. Implement EXACTLY the functionality described in the Tool_Description.
-
+4. Output any 3rd party dependencies that are needed.
 IMPORTANT: The user will provide the tool name and description. Your job is to code it precisely as specified.
 """
-    code_result = model.with_config(
+    code_result: ToolDescription = structure_model.with_config(
         {"run_name": f"Tool Coder {tool_desc.name}"}
     ).invoke(
         [
@@ -121,11 +123,13 @@ Tool_Description: {tool_desc.description}
 """,
             ),
         ]
-    )
-    tool_desc.code = str(code_result.content)
+    )  # pyright: ignore
+    tool_desc.code = code_result.code
+    tool_desc.dependencies = code_result.dependencies
     if opts.verbose > 2:
-        console.log("Tool code:", code_result.content)
-    evaluate_dependencies(tool_desc)
+        console.log("Tool dependencies:", code_result.dependencies)
+        console.log("Tool code:", code_result.code)
+    # evaluate_dependencies(tool_desc)
 
 
 def load_function_code(state: GraphState, tool_name: str) -> str:
@@ -237,11 +241,9 @@ IMPORTANT: Focus on correctness and adherence to the specified functionality. On
                         continue
                     elif user_response == "Abort":
                         raise UserAbortError("Aborted review")
-
-                repo.index.commit(
-                    f"Session: {session.id} - Revised Tool: {tool_def.name}\n{result.tool_issues}",
-                    author=git_actor,
-                    committer=git_actor,
+                commit_leftover_changes(
+                    state["sandbox_dir"],
+                    f"Revised Tool: {tool_def.name}\n{result.tool_issues}",
                 )
                 console.log(f"[bold green]Tool corrected: [bold yellow]{tool_def.name}")
             else:

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Literal
 
-from git import Repo
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_core.language_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -13,11 +12,10 @@ from auto_tool_agent.app_logging import console, agent_log, global_vars
 from auto_tool_agent.graph.graph_code import sync_deps_if_needed
 from auto_tool_agent.graph.graph_shared import (
     load_existing_tools,
-    git_actor,
     build_chat_model,
+    commit_leftover_changes,
 )
 from auto_tool_agent.graph.graph_state import GraphState, FinalResultResponse
-from auto_tool_agent.lib.session import session
 from auto_tool_agent.opts import opts
 from auto_tool_agent.tool_data import tool_data
 
@@ -86,18 +84,7 @@ def get_results(state: GraphState):
     """Use tools to get results."""
     global_vars.status_update("Getting results...")
 
-    repo = Repo(state["sandbox_dir"])
-
-    leftovers = repo.untracked_files + [item.a_path for item in repo.index.diff(None)]
-    if len(leftovers) > 0:
-        console.log("[bold green]Commiting all changes...")
-        repo.index.add(leftovers)
-        repo.index.commit("Adding all changes", author=git_actor, committer=git_actor)
-        repo.index.commit(
-            f"Session: {session.id} - Request: " + state["user_request"],
-            author=git_actor,
-            committer=git_actor,
-        )
+    commit_leftover_changes(state["sandbox_dir"], f"Request: {state['user_request']}")
     if opts.verbose > 1:
         console.log("needed_tools:", [tool.name for tool in state["needed_tools"]])
         console.log("ai_tools:", [tool.name for tool in tool_data.ai_tools.values()])

@@ -10,7 +10,11 @@ from git import Repo
 import tomlkit
 from tomlkit.items import Table, Array
 
-from auto_tool_agent.graph.graph_shared import load_existing_tools, git_actor
+from auto_tool_agent.graph.graph_shared import (
+    load_existing_tools,
+    git_actor,
+    commit_leftover_changes,
+)
 from auto_tool_agent.app_logging import agent_log, console, global_vars
 from auto_tool_agent.graph.graph_state import GraphState
 from auto_tool_agent.lib.execute_command import execute_command
@@ -28,6 +32,7 @@ def create_project_if_not_exist() -> None:
 
     global_vars.status_update("Project config not found, creating...")
     config = {"command": "uv", "params": ["init"], "folder": sandbox_dir}
+    (Path(sandbox_dir) / "hello.py").unlink()
     result = execute_command(config)
     if result["exit_code"] != 0:
         agent_log.error(result)
@@ -165,20 +170,14 @@ def sync_venv(dependencies: list[str]):
         repo.index.add(repo.untracked_files)
         repo.index.commit("Initial commit", author=git_actor, committer=git_actor)
 
-    leftovers = repo.untracked_files + [item.a_path for item in repo.index.diff(None)]
-    if len(leftovers) > 0:
-        global_vars.status_update("Commiting leftovers from last run...")
-        repo.index.add(leftovers)
-        repo.index.commit(
-            "Adding leftovers from last run", author=git_actor, committer=git_actor
-        )
+    commit_leftover_changes(sandbox_dir, "Adding leftovers from last run")
 
     branch = opts.branch or "main"
     if branch in [head.name for head in repo.heads]:
-        global_vars.status_update(f"Checking out branch '{opts.branch}'...")
+        global_vars.status_update(f"Checking out branch '{branch}'...")
         repo.git.checkout(opts.branch)
     else:
-        global_vars.status_update(f"Creating branch '{opts.branch}'...")
+        global_vars.status_update(f"Creating branch '{branch}'...")
         if "main" in [head.name for head in repo.heads]:
             repo.git.checkout("main")
         repo.git.checkout("HEAD", b=branch)

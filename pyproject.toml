@@ -26,7 +26,7 @@ classifiers = [
 
 dependencies = [
     "black>=24.8.0",
-    "boto3>=1.35.5",
+    "boto3>=1.34.0",
     "python-env>=1.0.0",
     "requests>=2.32.3",
     "simplejson>=3.19.3",
@@ -35,7 +35,6 @@ dependencies = [
     "langchain>=0.2.14",
     "langchain-core>=0.2.34",
     "langchain-community>=0.2.12",
-    "experimental>=0.9.7",
     "openai>=1.42.0",
     "langchain-openai>=0.1.22",
     "ollama>=0.3.1",
@@ -74,17 +73,20 @@ dependencies = [
     "keyboard>=0.13.5",
     "beautifulsoup4>=4.12.3",
     "pydantic-settings>=2.4.0",
-    "python-dotenv>=1.0.1",
     "html2markdown>=0.1.7",
     "html2text>=2024.2.26",
+    "langchain-experimental>=0.0.65",
+    "langchain-aws>=0.1.18",
+    "botocore>=1.34.162",
+    "python-dotenv>=1.0.1",
 ]
 
 packages = [
-    { include = "src/" },
-    { include = "src/**/*.py" },
+    "src/auto_tool_agent",
 ]
 
 [project.urls]
+Homepage = "https://github.com/paulrobello/auto_tool_agent"
 Documentation = "https://github.com/paulrobello/auto_tool_agent/blob/main/README.md"
 Repository = "https://github.com/paulrobello/auto_tool_agent"
 Issues = "https://github.com/paulrobello/auto_tool_agent/issues"
@@ -106,15 +108,46 @@ auto_tool_agent = [
 ]
 
 [build-system]
-requires = ["hatchling", "setuptools>=68", "wheel"]
+requires = ["hatchling", "wheel"]
 build-backend = "hatchling.build"
-#build-backend = "setuptools.build_meta"
 
 [tool.uv]
 dev-dependencies = [
     "build>=1.2.1",
     "twine>=5.1.1",
-    "pylint>=3.2.6",
-    "pyright>=1.1.377",
+    "black>=24.8.0",
+    "pylint>=3.2.7",
+    "pyright>=1.1.379",
     "pre-commit>=3.8.0",
+]
+
+[tool.hatch.version]
+path = "src/auto_tool_agent/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/auto_tool_agent"]
+include = [
+    "*.py",
+    "py.typed",
+    "*.png",
+    "*.md",
+    "*.tcss",
+    "*.png",
+    "*.md",
+    "*.tcss"
+]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/auto_tool_agent",
+    "LICENSE",
+    "README.md",
+    "extraction_prompt.md",
+    "pyproject.toml"
+]
+exclude = [
+    "*.pyc",
+    "__pycache__",
+    "*.so",
+    "*.dylib"
 ]
