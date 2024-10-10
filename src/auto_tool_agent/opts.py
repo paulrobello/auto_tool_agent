@@ -58,7 +58,7 @@ def parse_args():
         dest="provider",
         # choices=["OpenAI", "Anthropic", "Bedrock", "Google", "Groq", "Ollama"]
         choices=["OpenAI", "Anthropic", "Bedrock"],
-        default="Bedrock",
+        default="OpenAI",
         help="The LLM provider to use.",
     )
 
