@@ -20,7 +20,7 @@ async def async_main() -> None:
             log.info(opts)
         with console.status("[bold green]Working on tasks...") as status:
             global_vars.status = status
-            run_graph()
+            await run_graph()
     except Exception as e:  # pylint: disable=broad-except
         log.exception(e)
 

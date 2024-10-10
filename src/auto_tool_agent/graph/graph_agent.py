@@ -84,7 +84,7 @@ def generate_graph_viz():
         )
 
 
-def run_graph():
+async def run_graph():
     """Run the graph."""
 
     generate_graph_viz()
@@ -140,7 +140,7 @@ def run_graph():
         f"[bold green]Invoking graph request: [bold cyan]{initial_state['user_request']}"
     )
     try:
-        final_state = app.invoke(
+        final_state = await app.ainvoke(
             initial_state,
             config={
                 "configurable": {

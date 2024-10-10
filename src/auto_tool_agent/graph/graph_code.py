@@ -143,7 +143,7 @@ def load_function_code(state: GraphState, tool_name: str) -> str:
 
 
 # pylint: disable=too-many-branches,too-many-statements
-def review_tools(state: GraphState):
+async def review_tools(state: GraphState):
     """Ensure that the tool is correct."""
     global_vars.status_update("Reviewing tools...")
     repo = Repo(state["sandbox_dir"])
@@ -177,7 +177,7 @@ IMPORTANT: Focus on correctness and adherence to the specified functionality. On
 
             user_review = CodeReviewResponse()
             if opts.interactive:
-                user_response = CodeReviewApp(tool_def, user_review).run()
+                user_response = await CodeReviewApp(tool_def, user_review).run_async()
                 tool_def.format_code()
 
                 if user_response == "Accept":
