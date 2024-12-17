@@ -7,7 +7,6 @@ import shutil
 
 from auto_tool_agent.session import session
 
-
 # sandbox_base = os.path.join(os.path.abspath(os.path.dirname(__file__)), "sandbox")
 
 
@@ -46,10 +45,10 @@ def read_env_file(filename: str) -> dict[str, str]:
     env_vars = {}
     if not os.path.exists(filename):
         return env_vars
-    with open(filename, "r", encoding="utf-8") as f:
+    with open(filename, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            if not line or line.startswith("#") or not "=" in line:
+            if not line or line.startswith("#") or "=" not in line:
                 continue
             try:
                 key, value = line.split("=", 1)

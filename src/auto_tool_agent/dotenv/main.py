@@ -6,8 +6,9 @@ import shutil
 import sys
 import tempfile
 from collections import OrderedDict
+from collections.abc import Iterable, Iterator, Mapping
 from contextlib import contextmanager
-from typing import IO, Dict, Iterable, Iterator, Mapping, Optional, Tuple, Union
+from typing import IO, Union
 
 from .parser import Binding, parse_stream
 from .variables import parse_variables
@@ -34,18 +35,18 @@ def with_warn_for_invalid_lines(mappings: Iterator[Binding]) -> Iterator[Binding
 class DotEnv:
     def __init__(
         self,
-        dotenv_path: Optional[StrPath],
-        stream: Optional[IO[str]] = None,
+        dotenv_path: StrPath | None,
+        stream: IO[str] | None = None,
         verbose: bool = False,
-        encoding: Optional[str] = None,
+        encoding: str | None = None,
         interpolate: bool = True,
         override: bool = True,
     ) -> None:
-        self.dotenv_path: Optional[StrPath] = dotenv_path
-        self.stream: Optional[IO[str]] = stream
-        self._dict: Optional[Dict[str, Optional[str]]] = None
+        self.dotenv_path: StrPath | None = dotenv_path
+        self.stream: IO[str] | None = stream
+        self._dict: dict[str, str | None] | None = None
         self.verbose: bool = verbose
-        self.encoding: Optional[str] = encoding
+        self.encoding: str | None = encoding
         self.interpolate: bool = interpolate
         self.override: bool = override
 
@@ -64,7 +65,7 @@ class DotEnv:
                 )
             yield io.StringIO("")
 
-    def dict(self) -> Dict[str, Optional[str]]:
+    def dict(self) -> dict[str, str | None]:
         """Return dotenv as dict"""
         if self._dict:
             return self._dict
@@ -72,15 +73,13 @@ class DotEnv:
         raw_values = self.parse()
 
         if self.interpolate:
-            self._dict = OrderedDict(
-                resolve_variables(raw_values, override=self.override)
-            )
+            self._dict = OrderedDict(resolve_variables(raw_values, override=self.override))
         else:
             self._dict = OrderedDict(raw_values)
 
         return self._dict
 
-    def parse(self) -> Iterator[Tuple[str, Optional[str]]]:
+    def parse(self) -> Iterator[tuple[str, str | None]]:
         with self._get_stream() as stream:
             for mapping in with_warn_for_invalid_lines(parse_stream(stream)):
                 if mapping.key is not None:
@@ -101,7 +100,7 @@ class DotEnv:
 
         return True
 
-    def get(self, key: str) -> Optional[str]:
+    def get(self, key: str) -> str | None:
         """ """
         data = self.dict()
 
@@ -117,8 +116,8 @@ class DotEnv:
 def get_key(
     dotenv_path: StrPath,
     key_to_get: str,
-    encoding: Optional[str] = "utf-8",
-) -> Optional[str]:
+    encoding: str | None = "utf-8",
+) -> str | None:
     """
     Get the value of a given key from the given .env.
 
@@ -130,8 +129,8 @@ def get_key(
 @contextmanager
 def rewrite(
     path: StrPath,
-    encoding: Optional[str],
-) -> Iterator[Tuple[IO[str], IO[str]]]:
+    encoding: str | None,
+) -> Iterator[tuple[IO[str], IO[str]]]:
     pathlib.Path(path).touch()
 
     with tempfile.NamedTemporaryFile(mode="w", encoding=encoding, delete=False) as dest:
@@ -155,8 +154,8 @@ def set_key(
     value_to_set: str,
     quote_mode: str = "always",
     export: bool = False,
-    encoding: Optional[str] = "utf-8",
-) -> Tuple[Optional[bool], str, str]:
+    encoding: str | None = "utf-8",
+) -> tuple[bool | None, str, str]:
     """
     Adds or Updates a key/value to the given .env
 
@@ -166,9 +165,7 @@ def set_key(
     if quote_mode not in ("always", "auto", "never"):
         raise ValueError(f"Unknown quote_mode: {quote_mode}")
 
-    quote = quote_mode == "always" or (
-        quote_mode == "auto" and not value_to_set.isalnum()
-    )
+    quote = quote_mode == "always" or (quote_mode == "auto" and not value_to_set.isalnum())
 
     if quote:
         value_out = "'{}'".format(value_to_set.replace("'", "\\'"))
@@ -201,8 +198,8 @@ def unset_key(
     dotenv_path: StrPath,
     key_to_unset: str,
     quote_mode: str = "always",
-    encoding: Optional[str] = "utf-8",
-) -> Tuple[Optional[bool], str]:
+    encoding: str | None = "utf-8",
+) -> tuple[bool | None, str]:
     """
     Removes a given key from the given `.env` file.
 
@@ -222,26 +219,24 @@ def unset_key(
                 dest.write(mapping.original.string)
 
     if not removed:
-        logger.warning(
-            "Key %s not removed from %s - key doesn't exist.", key_to_unset, dotenv_path
-        )
+        logger.warning("Key %s not removed from %s - key doesn't exist.", key_to_unset, dotenv_path)
         return None, key_to_unset
 
     return removed, key_to_unset
 
 
 def resolve_variables(
-    values: Iterable[Tuple[str, Optional[str]]],
+    values: Iterable[tuple[str, str | None]],
     override: bool,
-) -> Mapping[str, Optional[str]]:
-    new_values: Dict[str, Optional[str]] = {}
+) -> Mapping[str, str | None]:
+    new_values: dict[str, str | None] = {}
 
     for name, value in values:
         if value is None:
             result = None
         else:
             atoms = parse_variables(value)
-            env: Dict[str, Optional[str]] = {}
+            env: dict[str, str | None] = {}
             if override:
                 env.update(os.environ)  # type: ignore
                 env.update(new_values)
@@ -260,7 +255,7 @@ def _walk_to_root(path: str) -> Iterator[str]:
     Yield directories starting from the given directory up to the root
     """
     if not os.path.exists(path):
-        raise IOError("Starting path not found")
+        raise OSError("Starting path not found")
 
     if os.path.isfile(path):
         path = os.path.dirname(path)
@@ -300,9 +295,7 @@ def find_dotenv(
         frame = sys._getframe()
         current_file = __file__
 
-        while frame.f_code.co_filename == current_file or not os.path.exists(
-            frame.f_code.co_filename
-        ):
+        while frame.f_code.co_filename == current_file or not os.path.exists(frame.f_code.co_filename):
             assert frame.f_back is not None
             frame = frame.f_back
         frame_filename = frame.f_code.co_filename
@@ -314,18 +307,18 @@ def find_dotenv(
             return check_path
 
     if raise_error_if_not_found:
-        raise IOError("File not found")
+        raise OSError("File not found")
 
     return ""
 
 
 def load_dotenv(
-    dotenv_path: Optional[StrPath] = None,
-    stream: Optional[IO[str]] = None,
+    dotenv_path: StrPath | None = None,
+    stream: IO[str] | None = None,
     verbose: bool = False,
     override: bool = False,
     interpolate: bool = True,
-    encoding: Optional[str] = "utf-8",
+    encoding: str | None = "utf-8",
 ) -> bool:
     """Parse a .env file and then load all the variables found as environment variables.
 
@@ -360,12 +353,12 @@ def load_dotenv(
 
 
 def dotenv_values(
-    dotenv_path: Optional[StrPath] = None,
-    stream: Optional[IO[str]] = None,
+    dotenv_path: StrPath | None = None,
+    stream: IO[str] | None = None,
     verbose: bool = False,
     interpolate: bool = True,
-    encoding: Optional[str] = "utf-8",
-) -> Dict[str, Optional[str]]:
+    encoding: str | None = "utf-8",
+) -> dict[str, str | None]:
     """
     Parse a .env file and return its content as a dict.
 

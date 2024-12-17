@@ -7,8 +7,8 @@ import importlib.util
 import logging
 import os
 import time
-
 from argparse import Namespace
+
 from langchain_core.tools import BaseTool
 from watchdog.events import FileSystemEventHandler
 
@@ -26,9 +26,7 @@ class ModuleLoader(FileSystemEventHandler):
         super().__init__()
         self.opts = opts
         self.load_existing_modules(os.path.join(opts.data_dir, "tools"))
-        self.load_existing_modules(
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools")
-        )
+        self.load_existing_modules(os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools"))
         self.folder_path = folder_path
         # the folder to watch
         self.load_existing_modules(self.folder_path)
@@ -40,10 +38,7 @@ class ModuleLoader(FileSystemEventHandler):
         """Load the modified module."""
         current_time = time.time()
         module_path = event.src_path
-        if (
-            module_path in self.last_loaded_modules
-            and current_time - self.last_loaded_modules[module_path] < 1
-        ):
+        if module_path in self.last_loaded_modules and current_time - self.last_loaded_modules[module_path] < 1:
             return
         self.load_module(str(module_path))
         self.last_loaded_modules[module_path] = current_time
@@ -54,18 +49,12 @@ class ModuleLoader(FileSystemEventHandler):
         module_name = module_path[:-3]  # remove .py extension
 
         try:
-            if (
-                not os.path.isfile(module_path)
-                or module_path.endswith("~")
-                or "__init__" in module_path
-            ):
+            if not os.path.isfile(module_path) or module_path.endswith("~") or "__init__" in module_path:
                 return
             if module_path.endswith(".py"):
                 spec = importlib.util.spec_from_file_location(module_name, module_path)
                 if not spec:
-                    ml_log.error(
-                        "[red]Error[/red]: unable to load module %s", module_name
-                    )
+                    ml_log.error("[red]Error[/red]: unable to load module %s", module_name)
                     return
                 module = importlib.util.module_from_spec(spec)
                 if spec.loader is None:
@@ -93,9 +82,7 @@ class ModuleLoader(FileSystemEventHandler):
                     ml_log.info("Ignoring non-Python file: %s", module_path)
         except Exception as e:  # pylint: disable=broad-except
             tool_data.add_bad_tool(module_name)
-            ml_log.exception(
-                "[red]Error[/red]: loading module %s: %s", module_path, str(e)
-            )
+            ml_log.exception("[red]Error[/red]: loading module %s: %s", module_path, str(e))
 
     def load_existing_modules(self, folder_path: str) -> None:
         """Load any existing modules in the folder."""

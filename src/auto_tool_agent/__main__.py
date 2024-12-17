@@ -3,33 +3,26 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import sys
-import logging
 from argparse import ArgumentParser
 
 from rich.console import Console
 from rich.logging import RichHandler
 
-from auto_tool_agent.dotenv import load_dotenv
-
-from auto_tool_agent import __application_binary__, __application_title__, __version__
-from auto_tool_agent.lib.llm_providers import (
-    provider_default_models,
-    get_llm_provider_from_str,
-)
-from auto_tool_agent.session import session
-
-from auto_tool_agent.tool_maker import tool_main, agent_main
+from . import __application_binary__, __application_title__, __version__
+from .dotenv import load_dotenv
+from .lib.llm_providers import LlmProvider, provider_default_models
+from .session import session
+from .tool_maker import agent_main, tool_main
 
 load_dotenv()
 load_dotenv("../.env")
 
 logPath = os.path.join(os.path.abspath(os.path.dirname(__file__)), "logs")
 os.makedirs(logPath, exist_ok=True)
-logFormatter = logging.Formatter(
-    "%(asctime)s[%(levelname)-5.5s] %(name)s - %(message)s"
-)
+logFormatter = logging.Formatter("%(asctime)s[%(levelname)-5.5s] %(name)s - %(message)s")
 fileHandler = logging.FileHandler(f"{logPath}/agent_run.log")
 fileHandler.setFormatter(logFormatter)
 
@@ -140,8 +133,7 @@ def parse_args():
         "--data_dir",
         dest="data_dir",
         type=str,
-        default=os.environ.get("AUTO_TOOL_AGENT_DATA_DIR")
-        or "~/.config/auto_tool_agent",
+        default=os.environ.get("AUTO_TOOL_AGENT_DATA_DIR") or "~/.config/auto_tool_agent",
         help="The directory to store data and generated tools. Default is ~/.config/auto_tool_agent.",
     )
 
@@ -164,15 +156,11 @@ def parse_args():
 
     args = parser.parse_args()
 
-    data_dir = os.path.expanduser(args.data_dir) or os.path.join(
-        os.path.expanduser("~/"), ".config", "auto_tool_agent"
-    )
+    data_dir = os.path.expanduser(args.data_dir) or os.path.join(os.path.expanduser("~/"), ".config", "auto_tool_agent")
     args.data_dir = data_dir
 
     config_file = os.path.join(data_dir, ".env")
-    args.sandbox_dir = os.path.expanduser(args.sandbox_dir or "") or os.path.join(
-        data_dir, "sandbox"
-    )
+    args.sandbox_dir = os.path.expanduser(args.sandbox_dir or "") or os.path.join(data_dir, "sandbox")
     os.makedirs(data_dir, exist_ok=True)
     os.makedirs(args.sandbox_dir, exist_ok=True)
     if os.path.exists(config_file):
@@ -190,17 +178,14 @@ def parse_args():
             parser.error("No user request provided.")
 
     if args.user_prompt:
-        with open(args.user_prompt, "rt", encoding="utf-8") as f:
+        with open(args.user_prompt, encoding="utf-8") as f:
             args.user_request = f.read()
     if args.user_request is not None:
         args.user_request = args.user_request.strip()
     if not args.user_prompt and not args.user_request:
         parser.error("Either --user_prompt or --user_request must be specified.")
 
-    args.model_name = (
-        args.model_name
-        or provider_default_models[get_llm_provider_from_str(args.provider)]
-    )
+    args.model_name = args.model_name or provider_default_models[LlmProvider(args.provider)]
     return args
 
 
@@ -224,13 +209,9 @@ async def async_main() -> None:
             )
 
         if not os.path.exists(system_prompt_path):
-            raise FileNotFoundError(
-                f"System prompt file {opts.system_prompt} does not exist in system_prompts folder."
-            )
+            raise FileNotFoundError(f"System prompt file {opts.system_prompt} does not exist in system_prompts folder.")
         if opts.user_prompt and not os.path.exists(opts.user_prompt):
-            raise FileNotFoundError(
-                f"User prompt file {opts.user_prompt} does not exist."
-            )
+            raise FileNotFoundError(f"User prompt file {opts.user_prompt} does not exist.")
 
         opts.system_prompt = system_prompt_path
 

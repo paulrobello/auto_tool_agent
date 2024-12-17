@@ -23,10 +23,12 @@ class LlmProvider(str, Enum):
     OLLAMA = "Ollama"
     OPENAI = "OpenAI"
     GROQ = "Groq"
+    XAI = "XAI"
     ANTHROPIC = "Anthropic"
     GOOGLE = "Google"
     BEDROCK = "Bedrock"
     GITHUB = "Github"
+    LLAMACPP = "LlamaCpp"
 
 
 llm_provider_types: list[LlmProvider] = list(LlmProvider)
@@ -34,8 +36,10 @@ llm_provider_names: list[str] = [p.value.lower() for p in llm_provider_types]
 
 provider_base_urls: dict[LlmProvider, str | None] = {
     LlmProvider.OLLAMA: "http://localhost:11434",
+    LlmProvider.LLAMACPP: "http://localhost:8080/v1",
     LlmProvider.OPENAI: None,
     LlmProvider.GROQ: None,
+    LlmProvider.XAI: None,
     LlmProvider.ANTHROPIC: None,
     LlmProvider.GOOGLE: None,
     LlmProvider.BEDROCK: None,
@@ -44,48 +48,58 @@ provider_base_urls: dict[LlmProvider, str | None] = {
 
 provider_default_models: dict[LlmProvider, str] = {
     LlmProvider.OLLAMA: "",
+    LlmProvider.LLAMACPP: "default",
     LlmProvider.OPENAI: "gpt-4o",
     LlmProvider.GROQ: "llama3-70b-8192",
+    LlmProvider.XAI: "grok-beta",
     LlmProvider.ANTHROPIC: "claude-3-5-sonnet-20241022",
     LlmProvider.GOOGLE: "gemini-1.5-pro-002",
-    LlmProvider.BEDROCK: "anthropic.claude-3-5-sonnet-20240620-v1:0",
+    LlmProvider.BEDROCK: "anthropic.claude-3-5-sonnet-20241022-v2:0",
     LlmProvider.GITHUB: "gpt-4o",
 }
 
 provider_light_models: dict[LlmProvider, str] = {
     LlmProvider.OLLAMA: "",
+    LlmProvider.LLAMACPP: "default",
     LlmProvider.OPENAI: "gpt-4o-mini",
     LlmProvider.GROQ: "llama3-70b-8192",
+    LlmProvider.XAI: "grok-beta",
     LlmProvider.ANTHROPIC: "claude-3-haiku-20240307",
-    LlmProvider.GOOGLE: "gemini-1.5-flash-002",
+    LlmProvider.GOOGLE: "gemini-2.0-flash-exp",
     LlmProvider.BEDROCK: "anthropic.claude-3-haiku-20240307-v1:0",
     LlmProvider.GITHUB: "gpt-4o-mini",
 }
 
 provider_vision_models: dict[LlmProvider, str] = {
     LlmProvider.OLLAMA: "",
+    LlmProvider.LLAMACPP: "default",
     LlmProvider.OPENAI: "gpt-4o",
     LlmProvider.GROQ: "llama-3.2-90b-vision-preview",
+    LlmProvider.XAI: "grok-vision-beta",
     LlmProvider.ANTHROPIC: "claude-3-5-sonnet-20241022",
     LlmProvider.GOOGLE: "gemini-1.5-pro-002",
-    LlmProvider.BEDROCK: "anthropic.claude-3-5-sonnet-20240620-v1:0",
+    LlmProvider.BEDROCK: "anthropic.claude-3-5-sonnet-20241022-v2:0",
     LlmProvider.GITHUB: "gpt-4o",
 }
 
 provider_default_embed_models: dict[LlmProvider, str] = {
-    LlmProvider.OLLAMA: "nomic-embed-text:latest",
+    LlmProvider.OLLAMA: "",  # nomic-embed-text:latest
+    LlmProvider.LLAMACPP: "default",
     LlmProvider.OPENAI: "text-embedding-3-large",
     LlmProvider.GROQ: "",
+    LlmProvider.XAI: "",
     LlmProvider.ANTHROPIC: "",
     LlmProvider.GOOGLE: "text-embedding-005",
     LlmProvider.BEDROCK: "amazon.titan-embed-text-v2:0",
-    LlmProvider.GITHUB: "text-embedding-3-large"
+    LlmProvider.GITHUB: "text-embedding-3-large",
 }
 
 provider_env_key_names: dict[LlmProvider, str] = {
     LlmProvider.OLLAMA: "",
+    LlmProvider.LLAMACPP: "",
     LlmProvider.OPENAI: "OPENAI_API_KEY",
     LlmProvider.GROQ: "GROQ_API_KEY",
+    LlmProvider.XAI: "XAI_API_KEY",
     LlmProvider.ANTHROPIC: "ANTHROPIC_API_KEY",
     LlmProvider.GOOGLE: "GOOGLE_API_KEY",
     LlmProvider.BEDROCK: "BEDROCK_API_KEY",
@@ -98,9 +112,9 @@ def get_provider_name_fuzzy(provider: str) -> str:
     provider = provider.lower()
     for p in llm_provider_types:
         if p.value.lower() == provider:
-            return p
+            return p.value
         if p.value.lower().startswith(provider):
-            return p
+            return p.value
     return ""
 
 
@@ -141,6 +155,14 @@ provider_config: dict[LlmProvider, LlmProviderConfig] = {
         supports_base_url=True,
         env_key_name=provider_env_key_names[LlmProvider.GROQ],
     ),
+    LlmProvider.XAI: LlmProviderConfig(
+        default_model=provider_default_models[LlmProvider.XAI],
+        default_light_model=provider_light_models[LlmProvider.XAI],
+        default_vision_model=provider_vision_models[LlmProvider.XAI],
+        default_embeddings_model=provider_default_embed_models[LlmProvider.XAI],
+        supports_base_url=True,
+        env_key_name=provider_env_key_names[LlmProvider.XAI],
+    ),
     LlmProvider.ANTHROPIC: LlmProviderConfig(
         default_model=provider_default_models[LlmProvider.ANTHROPIC],
         default_light_model=provider_light_models[LlmProvider.ANTHROPIC],
@@ -173,6 +195,14 @@ provider_config: dict[LlmProvider, LlmProviderConfig] = {
         supports_base_url=True,
         env_key_name=provider_env_key_names[LlmProvider.GITHUB],
     ),
+    LlmProvider.LLAMACPP: LlmProviderConfig(
+        default_model=provider_default_models[LlmProvider.LLAMACPP],
+        default_light_model=provider_light_models[LlmProvider.LLAMACPP],
+        default_vision_model=provider_vision_models[LlmProvider.LLAMACPP],
+        default_embeddings_model=provider_default_embed_models[LlmProvider.LLAMACPP],
+        supports_base_url=True,
+        env_key_name=provider_env_key_names[LlmProvider.LLAMACPP],
+    ),
 }
 
 
@@ -186,7 +216,7 @@ def provider_name_to_enum(name: str) -> LlmProvider:
 
 def is_provider_api_key_set(provider: LlmProvider) -> bool:
     """Check if API key is set for the provider."""
-    if provider == LlmProvider.OLLAMA:
+    if provider in [LlmProvider.OLLAMA, LlmProvider.LLAMACPP]:
         return True
     return len(os.environ.get(provider_env_key_names[provider], "")) > 0
 

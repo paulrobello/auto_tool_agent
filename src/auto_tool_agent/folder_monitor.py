@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
-
-import asyncio
 from argparse import Namespace
+
 from watchdog.observers import Observer
 
 from auto_tool_agent.module_loader import ModuleLoader

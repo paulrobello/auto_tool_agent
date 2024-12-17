@@ -4,11 +4,11 @@ from .main import dotenv_values, find_dotenv, get_key, load_dotenv, set_key, uns
 
 
 def get_cli_string(
-    path: Optional[str] = None,
-    action: Optional[str] = None,
-    key: Optional[str] = None,
-    value: Optional[str] = None,
-    quote: Optional[str] = None,
+    path: str | None = None,
+    action: str | None = None,
+    key: str | None = None,
+    value: str | None = None,
+    quote: str | None = None,
 ):
     """Returns a string suitable for running as a shell script.
 

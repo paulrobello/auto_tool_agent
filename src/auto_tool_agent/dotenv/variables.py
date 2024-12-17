@@ -1,6 +1,7 @@
 import re
 from abc import ABCMeta, abstractmethod
-from typing import Iterator, Mapping, Optional, Pattern
+from collections.abc import Iterator, Mapping
+from re import Pattern
 
 _posix_variable: Pattern[str] = re.compile(
     r"""
@@ -23,7 +24,7 @@ class Atom(metaclass=ABCMeta):
         return not result
 
     @abstractmethod
-    def resolve(self, env: Mapping[str, Optional[str]]) -> str: ...
+    def resolve(self, env: Mapping[str, str | None]) -> str: ...
 
 
 class Literal(Atom):
@@ -41,12 +42,12 @@ class Literal(Atom):
     def __hash__(self) -> int:
         return hash((self.__class__, self.value))
 
-    def resolve(self, env: Mapping[str, Optional[str]]) -> str:
+    def resolve(self, env: Mapping[str, str | None]) -> str:
         return self.value
 
 
 class Variable(Atom):
-    def __init__(self, name: str, default: Optional[str]) -> None:
+    def __init__(self, name: str, default: str | None) -> None:
         self.name = name
         self.default = default
 
@@ -61,7 +62,7 @@ class Variable(Atom):
     def __hash__(self) -> int:
         return hash((self.__class__, self.name, self.default))
 
-    def resolve(self, env: Mapping[str, Optional[str]]) -> str:
+    def resolve(self, env: Mapping[str, str | None]) -> str:
         default = self.default if self.default is not None else ""
         result = env.get(self.name, default)
         return result if result is not None else ""

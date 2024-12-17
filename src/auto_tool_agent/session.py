@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Optional
-from uuid import uuid4
-
 from argparse import Namespace
+from dataclasses import dataclass
+from uuid import uuid4
 
 
 @dataclass
@@ -18,7 +16,7 @@ class Session:
 
     def __init__(
         self,
-        id: Optional[str] = None,  # pylint: disable=redefined-builtin
+        id: str | None = None,  # pylint: disable=redefined-builtin
     ) -> None:
         self.id = id or str(uuid4())
 

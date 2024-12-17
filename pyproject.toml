@@ -66,6 +66,7 @@ dependencies = [
     "psycopg2-binary>=2.9.9",
     "docker>=7.1.0",
     "watchdog>=4.0.2",
+    "langchain-xai>=0.1.0",
 ]
 
 packages = [
@@ -104,7 +105,7 @@ dev-dependencies = [
     "build>=1.2.1",
     "twine>=5.1.1",
     "black>=24.8.0",
-    "pylint>=3.2.6",
     "pyright>=1.1.377",
     "pre-commit>=3.8.0",
+    "ruff>=0.8.3",
 ]

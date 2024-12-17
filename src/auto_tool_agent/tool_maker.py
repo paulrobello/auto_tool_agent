@@ -1,29 +1,28 @@
 """AI that makes its own tools"""
 
 from __future__ import annotations
+
 import asyncio
 import logging
 import os
 from argparse import Namespace
-from typing import Union
-from rich import print  # pylint: disable=redefined-builtin
-from langchain.agents import create_tool_calling_agent, AgentExecutor
-from langchain_core.prompts import MessagesPlaceholder, ChatPromptTemplate
-from langchain_core.tools import BaseTool
 
-from auto_tool_agent.folder_monitor import FolderMonitor
-from auto_tool_agent.tool_data import tool_data
-from auto_tool_agent.session import session
+from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.tools import BaseTool
+from rich import print  # pylint: disable=redefined-builtin
+
 from auto_tool_agent.ai_tools import (
     list_files,
     read_file,
-    write_file,
     rename_file,
+    write_file,
 )
+from auto_tool_agent.folder_monitor import FolderMonitor
 from auto_tool_agent.lib.llm_config import LlmConfig
-from auto_tool_agent.lib.llm_providers import get_llm_provider_from_str
-
-from auto_tool_agent.lib.llm_providers import provider_default_models
+from auto_tool_agent.lib.llm_providers import LlmProvider, provider_default_models
+from auto_tool_agent.session import session
+from auto_tool_agent.tool_data import tool_data
 
 AGENT_PREFIX = "[green]\\[agent][/green]"
 
@@ -70,18 +69,16 @@ def get_output_format_prompt(output_format: str) -> str:
     return ""
 
 
-async def create_agent(opts: Namespace) -> Union[str, bool]:
+async def create_agent(opts: Namespace) -> str | bool:
     """Create an agent."""
     opts.user_request = opts.user_request.strip()
     if opts.verbose > 0:
         agent_log.info("Creating agent with task: %s", opts.user_request)
-    with open(opts.system_prompt, "rt", encoding="utf-8") as f:
+    with open(opts.system_prompt, encoding="utf-8") as f:
         system_prompt = f.read()
     system_prompt = system_prompt.strip() + get_output_format_prompt(opts.output_format)
     if opts.verbose > 1:
-        agent_log.info(
-            "System prompt: \n=============\n%s\n=============", system_prompt
-        )
+        agent_log.info("System prompt: \n=============\n%s\n=============", system_prompt)
     prompt = ChatPromptTemplate.from_messages(
         [
             ("system", system_prompt),
@@ -90,7 +87,7 @@ async def create_agent(opts: Namespace) -> Union[str, bool]:
             MessagesPlaceholder(variable_name="agent_scratchpad"),
         ]
     )
-    provider = get_llm_provider_from_str(opts.provider)
+    provider = LlmProvider(opts.provider)
     llm_config = LlmConfig(
         provider=provider,
         model_name=opts.model_name or provider_default_models[provider],
@@ -118,7 +115,9 @@ async def create_agent(opts: Namespace) -> Union[str, bool]:
     tools += tool_data.ai_tools.values()
     agent = create_tool_calling_agent(llm, tools, prompt)
     agent_executor = AgentExecutor(
-        agent=agent, tools=tools, verbose=True  # pyright: ignore [reportArgumentType]
+        agent=agent,
+        tools=tools,
+        verbose=True,  # pyright: ignore [reportArgumentType]
     )
     agent_executor.verbose = False
     if opts.verbose > 0:
@@ -157,17 +156,14 @@ async def agent_loop(opts: Namespace, tool_monitor_task: asyncio.Task) -> None:
                 agent_log.info("New tool was created looping")
             max_tool_load_loops = 5
             tool_load_loops = 0
-            while (
-                tool_load_loops < max_tool_load_loops
-                and loop_last_tool_load == tool_data.last_tool_load
-            ):
+            while tool_load_loops < max_tool_load_loops and loop_last_tool_load == tool_data.last_tool_load:
                 tool_load_loops += 1
                 if opts.verbose > 0:
                     agent_log.info("Waiting for new tool to load")
                 await asyncio.sleep(3)
 
         if opts.output_file and isinstance(output, str):
-            with open(opts.output_file, "wt", encoding="utf-8") as f:
+            with open(opts.output_file, "w", encoding="utf-8") as f:
                 f.write(output)
 
         if opts.verbose > 0:

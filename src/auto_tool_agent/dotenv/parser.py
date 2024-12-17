@@ -1,14 +1,10 @@
 import codecs
 import re
+from collections.abc import Iterator, Sequence
+from re import Match, Pattern
 from typing import (
     IO,
-    Iterator,
-    Match,
     NamedTuple,
-    Optional,  # noqa:F401
-    Pattern,
-    Sequence,
-    Tuple,
 )
 
 
@@ -39,8 +35,8 @@ class Original(NamedTuple):
 
 
 class Binding(NamedTuple):
-    key: Optional[str]
-    value: Optional[str]
+    key: str | None
+    value: str | None
     original: Original
     error: bool
 
@@ -110,7 +106,7 @@ def decode_escapes(regex: Pattern[str], string: str) -> str:
     return regex.sub(decode_match, string)
 
 
-def parse_key(reader: Reader) -> Optional[str]:
+def parse_key(reader: Reader) -> str | None:
     char = reader.peek(1)
     if char == "#":
         return None
@@ -156,7 +152,7 @@ def parse_binding(reader: Reader) -> Binding:
         reader.read_regex(_whitespace)
         if reader.peek(1) == "=":
             reader.read_regex(_equal_sign)
-            value: Optional[str] = parse_value(reader)
+            value: str | None = parse_value(reader)
         else:
             value = None
         reader.read_regex(_comment)

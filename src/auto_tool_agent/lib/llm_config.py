@@ -3,21 +3,23 @@
 from __future__ import annotations
 
 import os
+import threading
+import uuid
 import warnings
 from dataclasses import dataclass
 from enum import Enum
 
-import boto3
-from botocore.config import Config
-
 from langchain._api import LangChainDeprecationWarning
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel, BaseLanguageModel
-
+from langchain_core.runnables import RunnableConfig
 from pydantic import SecretStr
+from rich.console import Console
 
 # from langchain_experimental import
 from .llm_providers import LlmProvider, is_provider_api_key_set, provider_base_urls
+
+console = Console(stderr=True)
 
 warnings.simplefilter("ignore", category=LangChainDeprecationWarning)
 
@@ -101,6 +103,8 @@ class LlmConfig:
     the same prompt."""
     max_tokens: int | None = None
     """Maximum number of tokens to generate."""
+    env_prefix: str = "PARAI"
+    """Prefix to use for environment variables"""
 
     def to_json(self) -> dict:
         """Return dict for use with json"""
@@ -126,6 +130,7 @@ class LlmConfig:
             "top_p": self.top_p,
             "seed": self.seed,
             "max_tokens": self.max_tokens,
+            "env_prefix": self.env_prefix,
         }
 
     @staticmethod
@@ -157,6 +162,14 @@ class LlmConfig:
             top_p=self.top_p,
             seed=self.seed,
             max_tokens=self.max_tokens,
+            env_prefix=self.env_prefix,
+        )
+
+    def gen_runnable_config(self) -> RunnableConfig:
+        config_id = str(uuid.uuid4())
+        return RunnableConfig(
+            metadata=self.to_json() | {"config_id": config_id},
+            tags=[f"config_id={config_id}", f"provider={self.provider.value}", f"model={self.model_name}"],
         )
 
     def _build_ollama_llm(self) -> BaseLanguageModel | BaseChatModel | Embeddings:
@@ -164,15 +177,15 @@ class LlmConfig:
         if self.provider != LlmProvider.OLLAMA:
             raise ValueError(f"LLM provider is'{self.provider}' but OLLAMA requested.")
 
-        from langchain_ollama import OllamaLLM, ChatOllama, OllamaEmbeddings
+        from langchain_ollama import ChatOllama, OllamaEmbeddings, OllamaLLM
 
         if self.mode == LlmMode.BASE:
             return OllamaLLM(
                 model=self.model_name,
                 temperature=self.temperature,
-                base_url=self.base_url or OLLAMA_HOST,
+                base_url=self.base_url or OLLAMA_HOST or provider_base_urls[self.provider],
                 client_kwargs={"timeout": self.timeout},
-                num_ctx=self.num_ctx,
+                num_ctx=self.num_ctx or None,
                 num_predict=self.num_predict,
                 repeat_last_n=self.repeat_last_n,
                 repeat_penalty=self.repeat_penalty,
@@ -187,9 +200,9 @@ class LlmConfig:
             return ChatOllama(
                 model=self.model_name,
                 temperature=self.temperature,
-                base_url=self.base_url or OLLAMA_HOST,
+                base_url=self.base_url or OLLAMA_HOST or provider_base_urls[self.provider],
                 client_kwargs={"timeout": self.timeout},
-                num_ctx=self.num_ctx,
+                num_ctx=self.num_ctx or None,
                 num_predict=self.num_predict,
                 repeat_last_n=self.repeat_last_n,
                 repeat_penalty=self.repeat_penalty,
@@ -200,10 +213,11 @@ class LlmConfig:
                 top_k=self.top_k,
                 top_p=self.top_p,
                 seed=self.seed,
+                disable_streaming=not self.streaming,
             )
         if self.mode == LlmMode.EMBEDDINGS:
             return OllamaEmbeddings(
-                base_url=self.base_url or OLLAMA_HOST,
+                base_url=self.base_url or OLLAMA_HOST or provider_base_urls[self.provider],
                 model=self.model_name,
             )
 
@@ -211,14 +225,14 @@ class LlmConfig:
 
     def _build_openai_llm(self) -> BaseLanguageModel | BaseChatModel | Embeddings:
         """Build the OPENAI LLM."""
-        if self.provider not in [LlmProvider.OPENAI, LlmProvider.GITHUB]:
+        if self.provider not in [LlmProvider.OPENAI, LlmProvider.GITHUB, LlmProvider.LLAMACPP]:
             raise ValueError(f"LLM provider is'{self.provider}' but OPENAI requested.")
         if self.provider == LlmProvider.GITHUB:
             api_key = SecretStr(os.environ.get("GITHUB_TOKEN", ""))
         else:
             api_key = SecretStr(os.environ.get("OPENAI_API_KEY", ""))
 
-        from langchain_openai import OpenAI, ChatOpenAI, OpenAIEmbeddings
+        from langchain_openai import ChatOpenAI, OpenAI, OpenAIEmbeddings
 
         if self.mode == LlmMode.BASE:
             return OpenAI(
@@ -244,7 +258,8 @@ class LlmConfig:
                 timeout=self.timeout,
                 top_p=self.top_p,
                 seed=self.seed,
-                max_tokens=self.max_tokens,
+                max_tokens=self.max_tokens,  # type: ignore
+                disable_streaming=not self.streaming,
             )
         if self.mode == LlmMode.EMBEDDINGS:
             return OpenAIEmbeddings(
@@ -273,6 +288,30 @@ class LlmConfig:
                 timeout=self.timeout,
                 streaming=self.streaming,
                 max_tokens=self.max_tokens,
+                disable_streaming=not self.streaming,
+            )  # type: ignore
+        if self.mode == LlmMode.EMBEDDINGS:
+            raise ValueError(f"{self.provider} provider does not support mode {self.mode}")
+
+        raise ValueError(f"Invalid LLM mode '{self.mode}'")
+
+    def _build_xai_llm(self) -> BaseLanguageModel | BaseChatModel | Embeddings:
+        """Build the XAI LLM."""
+        if self.provider != LlmProvider.XAI:
+            raise ValueError(f"LLM provider is'{self.provider}' but XAI requested.")
+
+        from langchain_xai import ChatXAI
+
+        if self.mode == LlmMode.BASE:
+            raise ValueError(f"{self.provider} provider does not support mode {self.mode}")
+        if self.mode == LlmMode.CHAT:
+            return ChatXAI(
+                model=self.model_name,
+                temperature=self.temperature,
+                timeout=self.timeout,
+                streaming=self.streaming,
+                max_tokens=self.max_tokens,
+                disable_streaming=not self.streaming,
             )  # type: ignore
         if self.mode == LlmMode.EMBEDDINGS:
             raise ValueError(f"{self.provider} provider does not support mode {self.mode}")
@@ -300,6 +339,7 @@ class LlmConfig:
                 top_p=self.top_p,
                 max_tokens_to_sample=self.num_predict or 1024,
                 max_tokens=self.max_tokens,  # pyright: ignore [reportCallIssue]
+                disable_streaming=not self.streaming,
             )
         if self.mode == LlmMode.EMBEDDINGS:
             raise ValueError(f"{self.provider} provider does not support mode {self.mode}")
@@ -316,8 +356,8 @@ class LlmConfig:
             ChatGoogleGenerativeAI,
             GoogleGenerativeAI,
             GoogleGenerativeAIEmbeddings,
-            HarmCategory,
             HarmBlockThreshold,
+            HarmCategory,
         )
 
         if self.mode == LlmMode.BASE:
@@ -339,6 +379,7 @@ class LlmConfig:
                 top_p=self.top_p,
                 max_tokens=self.max_tokens,
                 safety_settings={HarmCategory.HARM_CATEGORY_UNSPECIFIED: HarmBlockThreshold.BLOCK_NONE},
+                disable_streaming=not self.streaming,
             )
         if self.mode == LlmMode.EMBEDDINGS:
             return GoogleGenerativeAIEmbeddings(
@@ -352,8 +393,9 @@ class LlmConfig:
         """Build the BEDROCK LLM."""
         if self.provider != LlmProvider.BEDROCK:
             raise ValueError(f"LLM provider is'{self.provider}' but BEDROCK requested.")
-
-        from langchain_aws import BedrockLLM, ChatBedrockConverse, BedrockEmbeddings
+        import boto3
+        from botocore.config import Config
+        from langchain_aws import BedrockEmbeddings, BedrockLLM, ChatBedrockConverse
 
         session = boto3.Session(
             region_name=os.environ.get("AWS_REGION", "us-east-1"),
@@ -385,7 +427,8 @@ class LlmConfig:
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
                 top_p=self.top_p,
-                endpoint_url=self.base_url,
+                endpoint_url=self.base_url,  # type: ignore
+                disable_streaming=not self.streaming,
             )
         if self.mode == LlmMode.EMBEDDINGS:
             return BedrockEmbeddings(
@@ -401,10 +444,12 @@ class LlmConfig:
         self.base_url = self.base_url or provider_base_urls[self.provider]
         if self.provider == LlmProvider.OLLAMA:
             return self._build_ollama_llm()
-        if self.provider in [LlmProvider.OPENAI, LlmProvider.GITHUB]:
+        if self.provider in [LlmProvider.OPENAI, LlmProvider.GITHUB, LlmProvider.LLAMACPP]:
             return self._build_openai_llm()
         if self.provider == LlmProvider.GROQ:
             return self._build_groq_llm()
+        if self.provider == LlmProvider.XAI:
+            return self._build_xai_llm()
         if self.provider == LlmProvider.ANTHROPIC:
             return self._build_anthropic_llm()
         if self.provider == LlmProvider.GOOGLE:
@@ -416,15 +461,27 @@ class LlmConfig:
 
     def build_llm_model(self) -> BaseLanguageModel:
         """Build the LLM model."""
+        if self.model_name.startswith("o1"):
+            self.temperature = 1
         llm = self._build_llm()
         if isinstance(llm, BaseLanguageModel):
+            config = self.gen_runnable_config()
+            llm.name = config["metadata"]["config_id"] if "metadata" in config else None
+            llm_run_manager.register_id(config, self)
             return llm
         raise ValueError(f"LLM provider '{self.provider}' does not support base mode.")
 
     def build_chat_model(self) -> BaseChatModel:
         """Build the chat model."""
+        if self.model_name.startswith("o1"):
+            self.temperature = 1
+            self.streaming = False
+
         llm = self._build_llm()
         if isinstance(llm, BaseChatModel):
+            config = self.gen_runnable_config()
+            llm.name = config["metadata"]["config_id"] if "metadata" in config else None
+            llm_run_manager.register_id(config, self)
             return llm
         raise ValueError(f"LLM provider '{self.provider}' does not support chat mode.")
 
@@ -438,3 +495,60 @@ class LlmConfig:
     def is_api_key_set(self) -> bool:
         """Check if API key is set for the provider."""
         return is_provider_api_key_set(self.provider)
+
+    def set_env(self) -> LlmConfig:
+        """Update environment variables to match the LLM configuration."""
+        os.environ[f"{self.env_prefix}_AI_PROVIDER"] = self.provider.value
+        os.environ[f"{self.env_prefix}_MODEL"] = self.model_name
+        if self.base_url:
+            os.environ[f"{self.env_prefix}_AI_BASE_URL"] = self.base_url
+        os.environ[f"{self.env_prefix}_TEMPERATURE"] = str(self.temperature)
+        if self.user_agent_appid:
+            os.environ[f"{self.env_prefix}_USER_AGENT_APPID"] = self.user_agent_appid
+        os.environ[f"{self.env_prefix}_STREAMING"] = str(self.streaming)
+        if self.max_tokens is not None:
+            os.environ[f"{self.env_prefix}_MAX_CONTEXT_SIZE"] = str(self.max_tokens)
+
+        return self
+
+
+class LlmRunManager:
+    """LLM run manager."""
+
+    _lock: threading.Lock = threading.Lock()
+    _id_to_config: dict[str, tuple[RunnableConfig, LlmConfig]] = {}
+
+    def register_id(self, config: RunnableConfig, llmConfig: LlmConfig) -> None:
+        """Register runnable config by run id."""
+        if "metadata" not in config or "config_id" not in config["metadata"]:
+            raise ValueError("Runnable config must have a config_id in metadata")
+        with self._lock:
+            self._id_to_config[config["metadata"]["config_id"]] = (config, llmConfig)
+
+    def get_config(self, config_id: str) -> tuple[RunnableConfig, LlmConfig] | None:
+        """Get runnable config by run id."""
+        with self._lock:
+            return self._id_to_config.get(config_id)
+
+    def get_runnable_config(self, config_id: str | None) -> RunnableConfig | None:
+        """Get runnable config by run id."""
+        if not config_id:
+            return None
+        with self._lock:
+            config = self._id_to_config.get(config_id)
+            if not config:
+                return None
+            return config[0]
+
+    def get_provider_and_model(self, config_id: str | None) -> tuple[str, str] | None:
+        """Get provider and model by run id."""
+        if not config_id:
+            return None
+        with self._lock:
+            config = self._id_to_config.get(config_id)
+            if not config:
+                return None
+            return config[1].provider, config[1].model_name
+
+
+llm_run_manager = LlmRunManager()
