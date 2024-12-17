@@ -3,23 +3,23 @@
 from __future__ import annotations
 
 from typing import Literal
-import simplejson as json
 
-from langchain.agents import create_tool_calling_agent, AgentExecutor
+import simplejson as json
+from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.language_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
-from auto_tool_agent.app_logging import console, agent_log, global_vars
+from auto_tool_agent.app_logging import agent_log, console, global_vars
 from auto_tool_agent.graph.graph_code import sync_deps_if_needed
 from auto_tool_agent.graph.graph_shared import (
-    load_existing_tools,
+    AgentAbortError,
     build_chat_model,
     commit_leftover_changes,
-    AgentAbortError,
+    load_existing_tools,
 )
 from auto_tool_agent.graph.graph_state import (
-    GraphState,
     FinalResultResponse,
+    GraphState,
 )
 from auto_tool_agent.opts import opts
 from auto_tool_agent.tool_data import tool_data
@@ -33,9 +33,7 @@ def is_tool_needed(
     needed_tools = state["needed_tools"]
     for tool_def in needed_tools:
         if not tool_def.existing:
-            console.log(
-                f"[bold green]New tool needed: [bold yellow]{tool_def.name}. [/bold yellow]Building tool..."
-            )
+            console.log(f"[bold green]New tool needed: [bold yellow]{tool_def.name}. [/bold yellow]Building tool...")
             return "build_tool"
         if tool_def.needs_review:
             console.log(
@@ -71,15 +69,11 @@ def has_needed_tools(
     needed_tools = state["needed_tools"]
     for tool_def in needed_tools:
         if tool_def.needs_review:
-            console.log(
-                f"[bold green]Tool needs review: [bold yellow]{tool_def.name}. [/bold yellow]Reviewing..."
-            )
+            console.log(f"[bold green]Tool needs review: [bold yellow]{tool_def.name}. [/bold yellow]Reviewing...")
             return "review_tools"
     for tool_def in needed_tools:
         if tool_def.name not in tool_data.ai_tools:
-            console.log(
-                f"[bold red]Missing tool: [bold yellow]{tool_def.name}. [/bold yellow]Returning to planner..."
-            )
+            console.log(f"[bold red]Missing tool: [bold yellow]{tool_def.name}. [/bold yellow]Returning to planner...")
             return "plan_project"
 
     return "get_results"
@@ -153,9 +147,7 @@ INSTRUCTIONS:
         ]
     )
     model: BaseChatModel = build_chat_model(temperature=0.5)
-    agent = create_tool_calling_agent(model, tools, prompt).with_config(
-        {"run_name": "Get Results"}
-    )
+    agent = create_tool_calling_agent(model, tools, prompt).with_config({"run_name": "Get Results"})
     agent_executor = AgentExecutor(
         agent=agent,
         tools=tools,
@@ -181,9 +173,7 @@ INSTRUCTIONS:
                 for tool_def in state["needed_tools"]:
                     if tool_def.name == tool_name:
                         tool_def.needs_review = True
-                        tool_data.bad_tools[tool_name] = (
-                            final_result_response.error.error_message  # pylint: disable=no-member
-                        )
+                        tool_data.bad_tools[tool_name] = final_result_response.error.error_message  # pylint: disable=no-member
 
             return {
                 "call_stack": ["get_results"],
@@ -194,9 +184,7 @@ INSTRUCTIONS:
             pass
             # console.print(f"Error parsing JSON: {e}")
 
-    structure_model = build_chat_model(temperature=0).with_structured_output(
-        FinalResultResponse
-    )
+    structure_model = build_chat_model(temperature=0).with_structured_output(FinalResultResponse)
 
     chat_history = [
         (
@@ -210,9 +198,7 @@ INSTRUCTIONS:
     ]
     final_result_response: FinalResultResponse = structure_model.with_config(
         {"run_name": "Results output formatter"}
-    ).invoke(
-        chat_history
-    )  # type: ignore
+    ).invoke(chat_history)  # type: ignore
     # console.print("= RES FMT =" * 10)
     # console.print(final_result_response)
     # for step in ret["intermediate_steps"]:

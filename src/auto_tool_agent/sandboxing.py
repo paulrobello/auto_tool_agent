@@ -5,8 +5,8 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from auto_tool_agent.opts import opts
 from auto_tool_agent.lib.session import session
+from auto_tool_agent.opts import opts
 
 
 def clear_output_folder() -> None:
@@ -44,10 +44,10 @@ def read_env_file(filename: Path) -> dict[str, str]:
     env_vars = {}
     if not filename.exists():
         return env_vars
-    with open(filename, "rt", encoding="utf-8") as f:
+    with open(filename, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            if not line or line.startswith("#") or not "=" in line:
+            if not line or line.startswith("#") or "=" not in line:
                 continue
             try:
                 key, value = line.split("=", 1)

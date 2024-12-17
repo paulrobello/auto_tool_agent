@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import asyncio
 from argparse import Namespace
+from pathlib import Path
+
 from watchdog.observers import Observer
 
 from auto_tool_agent.app_logging import fm_log
@@ -27,9 +28,7 @@ class FolderMonitor:
         """Start the folder monitor."""
         if self.opts.verbose > 0:
             fm_log.info("Starting up: %s", self.folder_path)
-        self.observer.schedule(
-            self.event_handler, str(self.folder_path), recursive=True
-        )
+        self.observer.schedule(self.event_handler, str(self.folder_path), recursive=True)
         self.observer.start()
         while True:
             try:

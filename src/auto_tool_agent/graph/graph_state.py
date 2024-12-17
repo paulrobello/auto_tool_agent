@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Annotated, Any, Literal, TypedDict
 
-from typing import TypedDict, Annotated, List, Optional, Any, Literal
 import black
-
 from pydantic import BaseModel, Field
 
 from auto_tool_agent.opts import opts
@@ -15,12 +14,8 @@ from auto_tool_agent.opts import opts
 class ToolDescription(BaseModel):
     """Tool description for both needed and existing tools."""
 
-    name: str = Field(
-        description="Name of the tool. Should be a valid Python identifier in snake_case."
-    )
-    description: str = Field(
-        description="Detailed description of the tool, its parameters and output."
-    )
+    name: str = Field(description="Name of the tool. Should be a valid Python identifier in snake_case.")
+    description: str = Field(description="Detailed description of the tool, its parameters and output.")
     code: str = Field(description="Code for the tool.", default="")
     dependencies: list[str] = Field(
         description="List of 3rd party python packages required to run this tool.",
@@ -39,24 +34,12 @@ class ToolDescription(BaseModel):
     @property
     def tool_path(self) -> Path:
         """Get the path to the tool."""
-        return (
-            Path(opts.sandbox_dir)
-            / "src"
-            / "sandbox"
-            / "ai_tools"
-            / (self.name + ".py")
-        )
+        return Path(opts.sandbox_dir) / "src" / "sandbox" / "ai_tools" / (self.name + ".py")
 
     @property
     def metadata_path(self) -> Path:
         """Get the path to the tool."""
-        return (
-            Path(opts.sandbox_dir)
-            / "src"
-            / "sandbox"
-            / "ai_tools_metadata"
-            / (self.name + ".json")
-        )
+        return Path(opts.sandbox_dir) / "src" / "sandbox" / "ai_tools_metadata" / (self.name + ".json")
 
     def format_code(self) -> bool:
         """
@@ -87,9 +70,7 @@ class ToolDescription(BaseModel):
                 self.dependencies = []
                 return True
             return False
-        meta = ToolDescription.model_validate_json(
-            self.metadata_path.read_text(encoding="utf-8")
-        )
+        meta = ToolDescription.model_validate_json(self.metadata_path.read_text(encoding="utf-8"))
         self.dependencies = meta.dependencies
         self.code = meta.code
         # self.needs_review = False
@@ -132,18 +113,18 @@ class PlanProjectResponse(BaseModel):
     explanation: str = Field(
         description="Explanation of the project.",
     )
-    steps: List[str] = Field(
+    steps: list[str] = Field(
         description="List of steps to accomplish the project in order they should be done.",
         default_factory=list,
     )
-    needed_tools: List[ToolDescription] = Field(
+    needed_tools: list[ToolDescription] = Field(
         description="List of needed tools.",
         default_factory=list,
     )
 
     def to_markdown(self) -> str:
         """Convert to markdown."""
-        plan: List[str] = [
+        plan: list[str] = [
             "# Project Plan",
             "",
             "## User Request",
@@ -157,7 +138,8 @@ class PlanProjectResponse(BaseModel):
             "## Steps",
             "",
         ] + [
-            f"- {step}" for step in self.steps  # pylint: disable=not-an-iterable
+            f"- {step}"
+            for step in self.steps  # pylint: disable=not-an-iterable
         ]  # type: ignore
         plan.append("## Need Tools")
         for tool in self.needed_tools:  # pylint: disable=not-an-iterable
@@ -166,7 +148,7 @@ class PlanProjectResponse(BaseModel):
 
         return "\n".join(plan) + "\n"
 
-    def save(self, path: Optional[Path] = None) -> None:
+    def save(self, path: Path | None = None) -> None:
         """Save plan to a file as markdown."""
         plan_file = Path() / "plan.md"
         plan_file.write_text(self.to_markdown(), encoding="utf-8")
@@ -193,8 +175,8 @@ class FinalResultErrorResponse(BaseModel):
     tool_name: str = Field(description="Name of the tool.")
     error_message: str = Field(description="Error message returned from the tool.")
     needs_review: bool = Field(description="Set to true if the tool needs review.")
-    error_classifier: Literal["authentication", "syntax", "parameter", "parsing"] = (
-        Field(description="Type of error returned from the tool.")
+    error_classifier: Literal["authentication", "syntax", "parameter", "parsing"] = Field(
+        description="Type of error returned from the tool."
     )
 
 
@@ -202,7 +184,7 @@ class FinalResultResponse(BaseModel):
     """Final result response."""
 
     final_result: Any = Field(description="Final result of the tool.")
-    error: Optional[FinalResultErrorResponse] = Field(
+    error: FinalResultErrorResponse | None = Field(
         default=None,
         description="Error info.",
     )
@@ -219,9 +201,9 @@ class GraphState(TypedDict):
     call_stack: Annotated[list[str], add_node_call]
     clean_run: bool
     sandbox_dir: Path
-    plan: Optional[PlanProjectResponse]
+    plan: PlanProjectResponse | None
     dependencies: list[str]
     user_request: str
-    needed_tools: List[ToolDescription]
-    final_result: Optional[FinalResultResponse]
+    needed_tools: list[ToolDescription]
+    final_result: FinalResultResponse | None
     user_feedback: str

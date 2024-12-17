@@ -7,7 +7,6 @@ import warnings
 
 from langchain._api import LangChainDeprecationWarning
 
-
 warnings.simplefilter("ignore", category=LangChainDeprecationWarning)
 
 

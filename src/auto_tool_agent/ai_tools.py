@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
+import datetime
 import os
 from pathlib import Path
-
-from typing import Union, Literal
-import datetime
+from typing import Literal
 
 import docker
 import docker.types
 import psycopg2
 import simplejson as json
-
 from langchain_core.tools import tool
 
 import auto_tool_agent.opts
@@ -25,7 +23,7 @@ from auto_tool_agent.tool_funcs import google_search
 
 
 @tool()
-def write_file(data: str, filename: str, append: bool) -> Union[str, Literal[False]]:
+def write_file(data: str, filename: str, append: bool) -> str | Literal[False]:
     """
     Create or append file on disk
 
@@ -52,7 +50,7 @@ def write_file(data: str, filename: str, append: bool) -> Union[str, Literal[Fal
 
 
 @tool
-def read_file(filename: str) -> Union[dict[str, str], Literal[False]]:
+def read_file(filename: str) -> dict[str, str] | Literal[False]:
     """
     Read a file from disk
 
@@ -67,12 +65,10 @@ def read_file(filename: str) -> Union[dict[str, str], Literal[False]]:
             return False
 
         filename = os.path.basename(filename)
-        file_path = os.path.join(
-            auto_tool_agent.opts.opts.sandbox_dir, session.id, filename
-        )
+        file_path = os.path.join(auto_tool_agent.opts.opts.sandbox_dir, session.id, filename)
         if not os.path.exists(file_path):
             return False
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             data = f.read()
         return {"filename": filename, "data": data}
     except Exception as e:  # pylint: disable=broad-except
@@ -83,7 +79,7 @@ def read_file(filename: str) -> Union[dict[str, str], Literal[False]]:
 @tool
 def list_files(
     ignored: str,  # pylint: disable=unused-argument
-) -> Union[list[str], Literal[False]]:
+) -> list[str] | Literal[False]:
     """
     List files in the output directory
 
@@ -96,9 +92,7 @@ def list_files(
     try:
         if not create_session_folder():
             return False
-        files = os.listdir(
-            os.path.join(auto_tool_agent.opts.opts.sandbox_dir, session.id)
-        )
+        files = os.listdir(os.path.join(auto_tool_agent.opts.opts.sandbox_dir, session.id))
         return files
     except Exception as e:  # pylint: disable=broad-except
         print(f"Error: {e}")
@@ -106,7 +100,7 @@ def list_files(
 
 
 @tool
-def rename_file(old_filename: str, new_filename: str) -> Union[str, Literal[False]]:
+def rename_file(old_filename: str, new_filename: str) -> str | Literal[False]:
     """
     Rename a file in the output directory.
     This tool will not overwrite existing files.
@@ -124,12 +118,8 @@ def rename_file(old_filename: str, new_filename: str) -> Union[str, Literal[Fals
 
         old_filename = os.path.basename(old_filename)
         new_filename = os.path.basename(new_filename)
-        file_path = os.path.join(
-            auto_tool_agent.opts.opts.sandbox_dir, session.id, old_filename
-        )
-        new_file_path = os.path.join(
-            auto_tool_agent.opts.opts.sandbox_dir, session.id, new_filename
-        )
+        file_path = os.path.join(auto_tool_agent.opts.opts.sandbox_dir, session.id, old_filename)
+        new_file_path = os.path.join(auto_tool_agent.opts.opts.sandbox_dir, session.id, new_filename)
         if not os.path.exists(file_path):
             return False
         if os.path.exists(new_file_path):
@@ -145,7 +135,7 @@ def rename_file(old_filename: str, new_filename: str) -> Union[str, Literal[Fals
 # pylint: disable=too-many-locals
 def introspect_database(
     db_name: str,
-) -> Union[str, Literal[False]]:
+) -> str | Literal[False]:
     """
     Introspect a postgres database and return json schema
 
@@ -163,17 +153,13 @@ def introspect_database(
         db_host = os.environ.get("DB_HOST", "127.0.0.1")
 
         # Connect to the database
-        conn = psycopg2.connect(
-            host=db_host, database=db_name, user=db_user, password=db_password
-        )
+        conn = psycopg2.connect(host=db_host, database=db_name, user=db_user, password=db_password)
 
         # Create a cursor object
         cur = conn.cursor()
 
         # Get a list of all tables in the database
-        cur.execute(
-            "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"
-        )
+        cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
         tables = [table[0] for table in cur.fetchall()]
 
         # Initialize an empty dictionary to store the schema
@@ -224,9 +210,7 @@ def introspect_database(
 
         # Loop through each foreign key and create a relationship object
         for foreign_key in foreign_keys:
-            table_name, column_name, foreign_table_name, foreign_column_name = (
-                foreign_key
-            )
+            table_name, column_name, foreign_table_name, foreign_column_name = foreign_key
             relationship = {
                 "name": f"{table_name}_{column_name}_fkey",
                 "type": "one-to-many",
@@ -251,7 +235,7 @@ def introspect_database(
 
 
 @tool
-def search_web(query: str) -> Union[str, Literal[False]]:
+def search_web(query: str) -> str | Literal[False]:
     """
     Search the web using google search
 
@@ -280,13 +264,13 @@ def get_now(query: str) -> str:  # pylint: disable=unused-argument
         str: The current date and time
     """
 
-    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
+    return datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%SZ")
 
 
 @tool
 def execute_script(
     script_filename: str, requirements_filename: str | None
-) -> Union[dict[str, str | None], Literal[False]]:
+) -> dict[str, str | None] | Literal[False]:
     """
     Execute a python script in a docker container
 
@@ -312,9 +296,7 @@ def execute_script(
             mounts=[
                 docker.types.Mount(
                     target="/workspace",
-                    source=os.path.abspath(
-                        os.path.join(auto_tool_agent.opts.opts.sandbox_dir, session.id)
-                    ),
+                    source=os.path.abspath(os.path.join(auto_tool_agent.opts.opts.sandbox_dir, session.id)),
                     type="bind",
                 )
             ],
@@ -323,9 +305,7 @@ def execute_script(
         pip_output: str = ""
         if requirements_filename:
             requirements_filename = os.path.basename(requirements_filename)
-            (exit_code, output) = container.exec_run(
-                f"pip install -r {requirements_filename}", workdir="/workspace"
-            )
+            (exit_code, output) = container.exec_run(f"pip install -r {requirements_filename}", workdir="/workspace")
             pip_output = output.decode("utf-8")
             with open(
                 os.path.join(
@@ -345,9 +325,7 @@ def execute_script(
                     "exit_code": exit_code,
                 }
             pip_output = "Success"
-        (exit_code, output) = container.exec_run(
-            f"python {script_filename}", workdir="/workspace"
-        )
+        (exit_code, output) = container.exec_run(f"python {script_filename}", workdir="/workspace")
         run_output: str = output.decode("utf-8")
         with open(
             os.path.join(

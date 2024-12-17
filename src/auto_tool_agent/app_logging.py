@@ -9,16 +9,13 @@ from pathlib import Path
 from rich.console import Console, RenderableType
 from rich.logging import RichHandler
 from rich.status import Status
-from typing_extensions import Optional
 
 console = Console()
 
 logPath = Path(os.path.abspath(os.path.dirname(__file__))) / "logs"
 logPath.mkdir(parents=True, exist_ok=True)
 
-logFormatter = logging.Formatter(
-    "%(asctime)s[%(levelname)-5.5s] %(name)s - %(message)s"
-)
+logFormatter = logging.Formatter("%(asctime)s[%(levelname)-5.5s] %(name)s - %(message)s")
 fileHandler = logging.FileHandler(logPath / "agent_run.log")
 fileHandler.setFormatter(logFormatter)
 
@@ -56,7 +53,7 @@ fm_log = logging.getLogger(FOLDER_MONITOR_PREFIX)
 class GlobalVars:
     """Global variables."""
 
-    status: Optional[Status]
+    status: Status | None
 
     def __init__(self) -> None:
         """Initialize the global variables."""

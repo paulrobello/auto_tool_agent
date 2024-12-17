@@ -17,13 +17,11 @@ from auto_tool_agent.lib.llm_providers import (
     provider_default_models,
 )
 from auto_tool_agent.lib.module_loader import ModuleLoader
-from auto_tool_agent.opts import opts, format_to_extension
 from auto_tool_agent.lib.session import session
+from auto_tool_agent.opts import format_to_extension, opts
 
 
-def commit_leftover_changes(
-    sandbox_dir: Path, commit_message: str = "Adding all changes"
-) -> None:
+def commit_leftover_changes(sandbox_dir: Path, commit_message: str = "Adding all changes") -> None:
     """Commit all untracked files and changes."""
     repo = Repo(sandbox_dir)
 
@@ -53,17 +51,15 @@ def build_chat_model(*, temperature: float = 0.5) -> BaseChatModel:
 
 def save_state(state: GraphState):
     """Save the state."""
-    with open("state.json", "wt", encoding="utf-8") as f:
+    with open("state.json", "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2, default=str)
     if state["final_result"]:
         if opts.output_file:
-            opts.output_file.write_text(
-                state["final_result"].final_result, encoding="utf-8"
-            )
+            opts.output_file.write_text(state["final_result"].final_result, encoding="utf-8")
         else:
             with open(
                 f"final_result{format_to_extension[opts.output_format]}",
-                "wt",
+                "w",
                 encoding="utf-8",
             ) as f:
                 f.write(state["final_result"].final_result)

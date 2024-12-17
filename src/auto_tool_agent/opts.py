@@ -3,18 +3,18 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 import sys
+from argparse import ArgumentParser
+from pathlib import Path
 from typing import Literal, cast
 
-from argparse import ArgumentParser
 from dotenv import load_dotenv
+
 from auto_tool_agent import __application_binary__, __application_title__, __version__
 from auto_tool_agent.app_logging import log
-
 from auto_tool_agent.lib.llm_providers import (
-    provider_default_models,
     get_llm_provider_from_str,
+    provider_default_models,
 )
 
 OutputFormats = Literal["none", "text", "markdown", "csv", "json"]
@@ -125,9 +125,7 @@ def parse_args():
         "--data_dir",
         dest="data_dir",
         type=Path,
-        default=Path(
-            os.environ.get("AUTO_TOOL_AGENT_DATA_DIR") or "~/.config/auto_tool_agent"
-        ).expanduser(),
+        default=Path(os.environ.get("AUTO_TOOL_AGENT_DATA_DIR") or "~/.config/auto_tool_agent").expanduser(),
         help="The directory to store data and generated tools. Default is ~/.config/auto_tool_agent.",
     )
 
@@ -169,15 +167,11 @@ def parse_args():
 
     args = parser.parse_args()
 
-    data_dir = (
-        Path(args.data_dir).expanduser() or Path.home() / ".config" / "auto_tool_agent"
-    )
+    data_dir = Path(args.data_dir).expanduser() or Path.home() / ".config" / "auto_tool_agent"
     args.data_dir = data_dir
 
     config_file = data_dir / ".env"
-    args.sandbox_dir = (
-        args.sandbox_dir and args.sandbox_dir.expanduser()
-    ) or data_dir / "sandbox"
+    args.sandbox_dir = (args.sandbox_dir and args.sandbox_dir.expanduser()) or data_dir / "sandbox"
     data_dir.mkdir(parents=True, exist_ok=True)
     args.sandbox_dir.mkdir(parents=True, exist_ok=True)
     if config_file.exists():
@@ -199,14 +193,9 @@ def parse_args():
     if args.user_request is not None:
         args.user_request = args.user_request.strip()
     if not args.user_prompt and not args.user_request and not args.generate_graph:
-        parser.error(
-            "Either --user_prompt or --user_request or --generate_graph must be specified."
-        )
+        parser.error("Either --user_prompt or --user_request or --generate_graph must be specified.")
 
-    args.model_name = (
-        args.model_name
-        or provider_default_models[get_llm_provider_from_str(args.provider)]
-    )
+    args.model_name = args.model_name or provider_default_models[get_llm_provider_from_str(args.provider)]
     return args
 
 

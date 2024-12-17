@@ -3,29 +3,29 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import Literal
+
 import pyperclip  # type: ignore
 from rich.syntax import Syntax
-
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.message import Message
 from textual.screen import Screen
+from textual.widget import Widget
 from textual.widgets import (
-    Header,
-    Footer,
-    TextArea,
     Button,
     Checkbox,
+    Footer,
+    Header,
     Input,
     Select,
     Static,
+    TextArea,
 )
-from textual.widget import Widget
-from textual.message import Message
 
-from auto_tool_agent.graph.graph_state import ToolDescription, CodeReviewResponse
+from auto_tool_agent.graph.graph_state import CodeReviewResponse, ToolDescription
 from auto_tool_agent.tui.dialogs.yes_no_dialog import YesNoDialog
 
 UserResponse = Literal["Accept", "Reject", "Abort", "AI Review"]
@@ -96,7 +96,7 @@ class MainScreen(Screen[None]):
         self,
         tool_def: ToolDescription,
         code_review: CodeReviewResponse,
-        diff: Optional[Syntax],
+        diff: Syntax | None,
     ) -> None:
         """Initialise the screen."""
         super().__init__()
@@ -165,7 +165,7 @@ class MainScreen(Screen[None]):
         else:
             self.app.exit("Accept")
 
-    def confirm_save_response(self, res: Optional[bool]) -> None:
+    def confirm_save_response(self, res: bool | None) -> None:
         """Save code"""
         if not res:
             return
@@ -178,9 +178,7 @@ class MainScreen(Screen[None]):
         old_deps = self.tool_def.dependencies
         new_deps = self.query_one("#DepsEditor", TextArea).text.strip().split("\n")
         self.tool_def.dependencies = new_deps
-        self.code_review.tool_updated = old_code != new_code or set(old_deps) != set(
-            new_deps
-        )
+        self.code_review.tool_updated = old_code != new_code or set(old_deps) != set(new_deps)
 
         new_issues = self.query_one("#CodeReview", TextArea).text.strip()
         old_issues = self.code_review.tool_issues.strip()
@@ -192,7 +190,7 @@ class MainScreen(Screen[None]):
         self.tool_def.save()
         self.app.exit("Accept")
 
-    def confirm_reject_response(self, res: Optional[bool]) -> None:
+    def confirm_reject_response(self, res: bool | None) -> None:
         """Delete tool"""
         if not res:
             return
@@ -239,7 +237,7 @@ class CodeReviewApp(App[UserResponse]):
         self,
         tool_def: ToolDescription,
         code_review: CodeReviewResponse,
-        diff: Optional[Syntax] = None,
+        diff: Syntax | None = None,
     ) -> None:
         """Initialise the app."""
         super().__init__()
@@ -258,12 +256,8 @@ class CodeReviewApp(App[UserResponse]):
         if not f:
             return
 
-        if isinstance(f, (Input, Select)):
-            self.app.post_message(
-                SendToClipboard(
-                    str(f.value) if f.value and f.value != Select.BLANK else ""
-                )
-            )
+        if isinstance(f, (Input | Select)):
+            self.app.post_message(SendToClipboard(str(f.value) if f.value and f.value != Select.BLANK else ""))
 
         if isinstance(f, TextArea):
             self.app.post_message(SendToClipboard(f.selected_text or f.text))

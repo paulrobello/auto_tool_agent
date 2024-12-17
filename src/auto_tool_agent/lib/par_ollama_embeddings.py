@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-from typing import List
-
 import ollama
 from langchain_core.embeddings import Embeddings
-from langchain_core.pydantic_v1 import BaseModel
-from langchain_core.pydantic_v1 import Extra
+from langchain_core.pydantic_v1 import BaseModel, Extra
 
 
 class ParOllamaEmbeddings(BaseModel, Embeddings):
@@ -36,14 +33,12 @@ class ParOllamaEmbeddings(BaseModel, Embeddings):
         super().__init__(**kwargs)
         self._ollama_host = ollama_host
 
-    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
         """Embed search docs."""
-        embedded_docs = ollama.Client(host=self._ollama_host).embed(self.model, texts)[
-            "embeddings"
-        ]
+        embedded_docs = ollama.Client(host=self._ollama_host).embed(self.model, texts)["embeddings"]
         return embedded_docs
 
-    def embed_query(self, text: str) -> List[float]:
+    def embed_query(self, text: str) -> list[float]:
         """Embed query text."""
         return self.embed_documents([text])[0]
 
@@ -55,17 +50,15 @@ class ParOllamaEmbeddings(BaseModel, Embeddings):
         """Get dimension of the embedding."""
         return len(await self.aembed_query("test"))
 
-    async def aembed_documents(self, texts: List[str]) -> List[List[float]]:
+    async def aembed_documents(self, texts: list[str]) -> list[list[float]]:
         """Embed search docs."""
-        embedded_docs = (
-            await ollama.AsyncClient(host=self._ollama_host).embed(self.model, texts)
-        )["embeddings"]
+        embedded_docs = (await ollama.AsyncClient(host=self._ollama_host).embed(self.model, texts))["embeddings"]
         return embedded_docs
 
-    async def aembed_query(self, text: str) -> List[float]:
+    async def aembed_query(self, text: str) -> list[float]:
         """Embed query text."""
         return (await self.aembed_documents([text]))[0]
 
-    def __call__(self, user_input: List[str]):
+    def __call__(self, user_input: list[str]):
         """Embed input texts."""
         return self.embed_documents(user_input)

@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import logging
-import subprocess
 import os
+import subprocess
 
 EXEC_PREFIX = "[yellow]\\[agent][/yellow]"
 
@@ -20,9 +20,7 @@ def execute_command(config: dict) -> dict:
 
     # Ensure the folder exists and is a directory
     if not os.path.isdir(folder):
-        raise ValueError(
-            f"Specified folder '{folder}' does not exist or is not a directory."
-        )
+        raise ValueError(f"Specified folder '{folder}' does not exist or is not a directory.")
 
     # Change the working directory
     original_directory = os.getcwd()
@@ -30,9 +28,7 @@ def execute_command(config: dict) -> dict:
 
     try:
         # Execute the command
-        result = subprocess.run(
-            [command] + params, text=True, capture_output=True, check=False
-        )
+        result = subprocess.run([command] + params, text=True, capture_output=True, check=False)
 
         # Return the result as a dictionary
         ret = {

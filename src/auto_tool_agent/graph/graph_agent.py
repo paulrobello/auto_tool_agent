@@ -2,34 +2,33 @@
 
 from __future__ import annotations
 
-from typing import Any
 from pathlib import Path
+from typing import Any
 
 from langchain_core.runnables.graph import NodeStyles
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import END, START, StateGraph
 from rich import print  # pylint: disable=redefined-builtin
 from rich.markdown import Markdown
 
-from langgraph.checkpoint.memory import MemorySaver
-from langgraph.graph import END, START, StateGraph
-
 from auto_tool_agent.app_logging import console, global_vars
 from auto_tool_agent.graph.graph_code import (
-    review_tools,
     build_tool,
+    review_tools,
 )
 from auto_tool_agent.graph.graph_output import format_output
 from auto_tool_agent.graph.graph_planner import plan_project
 from auto_tool_agent.graph.graph_results import (
-    is_tool_needed,
+    check_results,
+    get_results,
     get_results_pre_check,
     has_needed_tools,
-    get_results,
-    check_results,
+    is_tool_needed,
 )
 from auto_tool_agent.graph.graph_sandbox import setup_sandbox
 from auto_tool_agent.graph.graph_shared import (
-    save_state,
     UserAbortError,
+    save_state,
 )
 from auto_tool_agent.graph.graph_state import (
     GraphState,
@@ -74,12 +73,10 @@ def generate_graph_viz():
     """Generate graphviz."""
     global_vars.status_update("Creating graph viz...")
     # Draw the graph via mermaid
-    with open("graph.mermaid", "wt", encoding="utf-8") as mermaid_file:
+    with open("graph.mermaid", "w", encoding="utf-8") as mermaid_file:
         mermaid_file.write(
             app.get_graph().draw_mermaid(
-                node_colors=NodeStyles(
-                    default="fill: #333", first="fill: #353", last="fill: #533"
-                )
+                node_colors=NodeStyles(default="fill: #333", first="fill: #353", last="fill: #533")
             )
         )
 
@@ -136,9 +133,7 @@ async def run_graph():
         "user_feedback": "",
     }
 
-    console.log(
-        f"[bold green]Invoking graph request: [bold cyan]{initial_state['user_request']}"
-    )
+    console.log(f"[bold green]Invoking graph request: [bold cyan]{initial_state['user_request']}")
     try:
         final_state = await app.ainvoke(
             initial_state,
@@ -163,9 +158,7 @@ async def run_graph():
     prompt_file = module_folder / "prompt.md"
     prompt_file.write_text(final_state["user_request"], encoding="utf-8")
     print("[bold yellow]Sandbox command:")
-    print(
-        f"clear;uv run python -m sandbox -t {tool_list} \"{final_state['user_request']}\""
-    )
+    print(f"clear;uv run python -m sandbox -t {tool_list} \"{final_state['user_request']}\"")
 
     output_file = Path("./final_result.md")
     if opts.output_file:

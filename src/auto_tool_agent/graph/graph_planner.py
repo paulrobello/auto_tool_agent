@@ -9,9 +9,9 @@ from langchain_core.language_models import BaseChatModel
 
 from auto_tool_agent.app_logging import console, global_vars
 from auto_tool_agent.graph.graph_shared import (
+    UserAbortError,
     build_chat_model,
     load_existing_tools,
-    UserAbortError,
 )
 from auto_tool_agent.graph.graph_state import GraphState, PlanProjectResponse
 from auto_tool_agent.opts import opts
@@ -24,18 +24,12 @@ def get_available_tool_descriptions_old(state: GraphState) -> str:
     src_dir = Path(state["sandbox_dir"]) / "src" / "sandbox"
 
     for file in src_dir.iterdir():
-        if (
-            not file.name.endswith(".py")
-            or file.name.startswith("_")
-            or file.name.startswith(".")
-        ):
+        if not file.name.endswith(".py") or file.name.startswith("_") or file.name.startswith("."):
             continue
         data = file.read_text(encoding="utf-8")
         try:
             module = ast.parse(data)
-            func = next(
-                (n for n in module.body if isinstance(n, ast.FunctionDef)), None
-            )
+            func = next((n for n in module.body if isinstance(n, ast.FunctionDef)), None)
             docstring = ast.get_docstring(func) if func else ""
         except SyntaxError:
             docstring = ""
@@ -126,11 +120,7 @@ Be concise yet thorough in your explanations, focusing on the practical applicat
 
     user_has_input = True
     while user_has_input:
-        result: PlanProjectResponse = structure_model.with_config(
-            {"run_name": "Project Planner"}
-        ).invoke(
-            chat_history
-        )  # type: ignore
+        result: PlanProjectResponse = structure_model.with_config({"run_name": "Project Planner"}).invoke(chat_history)  # type: ignore
 
         for tool_def in result.needed_tools:
             tool_def.load()
@@ -140,9 +130,7 @@ Be concise yet thorough in your explanations, focusing on the practical applicat
 
             if opts.review_tools:
                 if not tool_def.needs_review:
-                    console.log(
-                        f"[bold green]Forcing review of tool:[bold yellow] {tool_def.name}"
-                    )
+                    console.log(f"[bold green]Forcing review of tool:[bold yellow] {tool_def.name}")
                 tool_def.needs_review = True
         console.log("[bold green]Plan explanation:")
         console.log(result.explanation)
@@ -165,11 +153,7 @@ Be concise yet thorough in your explanations, focusing on the practical applicat
         if opts.interactive:
             global_vars.status_stop()
             response = (
-                console.input(
-                    "[bold green]Accept plan? [bold yellow][Y]es/No/Revise [bold green]: \n"
-                )
-                .strip()
-                .lower()
+                console.input("[bold green]Accept plan? [bold yellow][Y]es/No/Revise [bold green]: \n").strip().lower()
             )
             global_vars.status_start()
             console.log("response", response)
@@ -177,9 +161,7 @@ Be concise yet thorough in your explanations, focusing on the practical applicat
                 response = "y"
             if response == "r":
                 global_vars.status_stop()
-                user_has_input = console.input(
-                    "[bold green]Enter instructions for re-plan: "
-                ).strip()
+                user_has_input = console.input("[bold green]Enter instructions for re-plan: ").strip()
                 global_vars.status_start()
                 if user_has_input:
                     chat_history += [("user", user_has_input)]

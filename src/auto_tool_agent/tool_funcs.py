@@ -4,18 +4,18 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-
-from typing import Union, Literal
+from typing import Literal
 from urllib.parse import quote
-import requests
+
 import docker.types
+import requests
 from docker import DockerClient
 from docker.models.containers import Container
 
 from auto_tool_agent.sandboxing import read_env_file
 
 
-def google_search(query: str) -> Union[dict, Literal[False]]:
+def google_search(query: str) -> dict | Literal[False]:
     """
     Search the web using google search
 
@@ -55,7 +55,7 @@ def start_docker_container(
     re_create: bool = False,
     remove: bool = False,
     background: bool = True,
-) -> Union[bool, str]:
+) -> bool | str:
     """
     Start a docker container if it exists, otherwise create it
 
@@ -80,9 +80,7 @@ def start_docker_container(
             env = {}
         env = read_env_file(Path("../.env")) | read_env_file(Path(".env")) | env
 
-        client: DockerClient = docker.DockerClient(
-            base_url="tcp://127.0.0.1:2375", tls=False
-        )
+        client: DockerClient = docker.DockerClient(base_url="tcp://127.0.0.1:2375", tls=False)
         if network_name:
             try:
                 networks = client.networks.list(names=[network_name])

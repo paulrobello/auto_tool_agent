@@ -1,6 +1,6 @@
 """Get current date and time in UTC tool"""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from langchain_core.tools import tool
 
@@ -14,4 +14,4 @@ def get_now() -> str:
         str: The current date and time
     """
 
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
+    return datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%SZ")

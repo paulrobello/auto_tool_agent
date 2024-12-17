@@ -3,19 +3,19 @@
 from __future__ import annotations
 
 import shutil
-from typing import cast
 from pathlib import Path
-from git import Repo
+from typing import cast
 
 import tomlkit
+from git import Repo
 from tomlkit.items import Table
 
-from auto_tool_agent.graph.graph_shared import (
-    load_existing_tools,
-    git_actor,
-    commit_leftover_changes,
-)
 from auto_tool_agent.app_logging import agent_log, console, global_vars
+from auto_tool_agent.graph.graph_shared import (
+    commit_leftover_changes,
+    git_actor,
+    load_existing_tools,
+)
 from auto_tool_agent.graph.graph_state import GraphState
 from auto_tool_agent.lib.execute_command import execute_command
 from auto_tool_agent.opts import opts
@@ -84,9 +84,7 @@ def sync_master_venv(dependencies: list[str]):
     if requested_deps != existing_deps:
         to_install = list(requested_deps - existing_deps)
         if len(to_install) > 0:
-            global_vars.status_update(
-                f"[bold green]Master installing missing deps:[/bold green] {to_install}"
-            )
+            global_vars.status_update(f"[bold green]Master installing missing deps:[/bold green] {to_install}")
             config = {
                 "command": "uv",
                 "params": ["add"] + to_install,

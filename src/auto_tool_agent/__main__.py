@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-from dotenv import load_dotenv
-from auto_tool_agent.app_logging import log, console, global_vars
-from auto_tool_agent.graph.graph_agent import run_graph
-from auto_tool_agent.opts import opts
 
+from app_logging import console, global_vars, log
+from dotenv import load_dotenv
+
+from .graph.graph_agent import run_graph
+from .opts import opts
 
 load_dotenv()
 load_dotenv("../.env")

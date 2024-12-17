@@ -5,25 +5,24 @@ from __future__ import annotations
 from pathlib import Path
 
 from git import Repo
-
 from langchain_core.language_models import BaseChatModel
 
+from auto_tool_agent.app_logging import agent_log, console, global_vars
 from auto_tool_agent.graph.graph_sandbox import sync_venv
 from auto_tool_agent.graph.graph_shared import (
-    build_chat_model,
-    save_state,
-    git_actor,
-    UserAbortError,
-    commit_leftover_changes,
     AgentAbortError,
+    UserAbortError,
+    build_chat_model,
+    commit_leftover_changes,
+    git_actor,
+    save_state,
 )
-from auto_tool_agent.app_logging import agent_log, console, global_vars
 from auto_tool_agent.graph.graph_state import (
-    GraphState,
-    ToolDescription,
-    DependenciesNeededResponse,
     CodeReviewResponse,
+    DependenciesNeededResponse,
+    GraphState,
     PlanProjectResponse,
+    ToolDescription,
 )
 from auto_tool_agent.lib.output_utils import format_diff
 from auto_tool_agent.lib.session import session
@@ -61,9 +60,7 @@ CODE_RULES = """
 
 def evaluate_dependencies(tool_desc: ToolDescription) -> None:
     """Evaluate dependencies."""
-    global_vars.status_update(
-        f"[bold green]Evaluating dependencies for tool: [bold yellow]{tool_desc.name}"
-    )
+    global_vars.status_update(f"[bold green]Evaluating dependencies for tool: [bold yellow]{tool_desc.name}")
     model = build_chat_model()
 
     structure_model = model.with_structured_output(DependenciesNeededResponse)
@@ -73,12 +70,8 @@ ROLE: You are an expert in programming with Python.
 * Determine the 3rd party dependencies that are needed based on the list of imports provided by the user.
 * Return the list of package names. Ensure you transform underscores to hyphens.
 """
-    tool_imports = "\n".join(
-        line for line in tool_desc.code.split("\n") if "import" in line
-    )
-    deps_result: DependenciesNeededResponse = structure_model.with_config(
-        {"run_name": "Dependency Evaluator"}
-    ).invoke(
+    tool_imports = "\n".join(line for line in tool_desc.code.split("\n") if "import" in line)
+    deps_result: DependenciesNeededResponse = structure_model.with_config({"run_name": "Dependency Evaluator"}).invoke(
         [
             ("system", system_prompt),
             (
@@ -114,9 +107,7 @@ INSTRUCTIONS:
 4. Output any 3rd party dependencies that are needed.
 IMPORTANT: The user will provide the tool name and description. Your job is to code it precisely as specified.
 """
-    code_result: ToolDescription = structure_model.with_config(
-        {"run_name": f"Tool Coder {tool_desc.name}"}
-    ).invoke(
+    code_result: ToolDescription = structure_model.with_config({"run_name": f"Tool Coder {tool_desc.name}"}).invoke(
         [
             ("system", system_prompt),
             (
@@ -189,9 +180,7 @@ IMPORTANT: Focus on correctness and adherence to the specified functionality. On
                 if not tool_def.needs_review:
                     continue
 
-            global_vars.status_update(
-                f"[bold green]Reviewing tool: [bold yellow]{tool_def.name}"
-            )
+            global_vars.status_update(f"[bold green]Reviewing tool: [bold yellow]{tool_def.name}")
 
             tool_def.needs_review = False
 
@@ -227,9 +216,7 @@ IMPORTANT: Focus on correctness and adherence to the specified functionality. On
             if not result:
                 raise AgentAbortError("Aborted review due to empty response")
             if result.tool_updated and result.updated_tool_code:
-                console.log(
-                    f"[bold red]Tool review did not pass: [bold yellow]{tool_def.name}"
-                )
+                console.log(f"[bold red]Tool review did not pass: [bold yellow]{tool_def.name}")
                 console.log(f"[bold red]{result.tool_issues}")
                 evaluate_dependencies(tool_def)
 
@@ -255,9 +242,7 @@ IMPORTANT: Focus on correctness and adherence to the specified functionality. On
                 )
                 console.log(f"[bold green]Tool corrected: [bold yellow]{tool_def.name}")
             else:
-                console.log(
-                    f"[bold green]Tool review passed: [bold yellow]{tool_def.name}"
-                )
+                console.log(f"[bold green]Tool review passed: [bold yellow]{tool_def.name}")
 
     save_state(state)
     return {"call_stack": ["review_tools"], "needed_tools": state["needed_tools"]}
