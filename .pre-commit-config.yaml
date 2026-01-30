@@ -20,12 +20,12 @@ repos:
         args: [--autofix, --no-sort-keys]
         exclude: tests(/\w*)*/functional/|tests/input|tests(/.*)+/conftest.py|doc/data/messages|tests(/\w*)*data/|Pipfile.lock
 
-#-   repo: https://github.com/asottile/reorder-python-imports
-#    rev: v3.13.0
-#    hooks:
-#    -   id: reorder-python-imports
-#        args: [--py39-plus, --add-import, "from __future__ import annotations"]
-#        exclude: tests(/\w*)*/functional/|tests/input|tests(/.*)+/conftest.py|doc/data/messages|tests(/\w*)*data/
+-   repo: https://github.com/asottile/reorder-python-imports
+    rev: v0.0.1
+    hooks:
+    -   id: https://github.com/Tesla2000/black-compatible-reorder-python-imports
+        args: [--py39-plus, --add-import, "from __future__ import annotations", --retain-pre-import, "True"]
+        exclude: tests(/\w*)*/functional/|tests/input|tests(/.*)+/conftest.py|doc/data/messages|tests(/\w*)*data/
 
 -   repo: https://github.com/psf/black
     rev: 24.8.0
